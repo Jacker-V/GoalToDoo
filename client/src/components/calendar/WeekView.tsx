@@ -8,7 +8,7 @@ import {
   Plus,
 } from 'lucide-react';
 import type { CalendarDayInfo } from '../../utils/calendar';
-import { WEEKDAY_LABELS_VI, formatTimeHHmm } from '../../utils/calendar';
+import { WEEKDAY_LABELS_VI, formatTimeHHmm, getItemDateStr } from '../../utils/calendar';
 import type { CalendarEvent } from '../../types/event';
 import type { Task } from '../../types/task';
 import type { Goal } from '../../types/goal';
@@ -79,8 +79,8 @@ export const WeekView: React.FC<WeekViewProps> = ({
   const activeGoals = React.useMemo(() => {
     if (!filters.showGoals || !weekStartStr || !weekEndStr) return [];
     return goals.filter((g) => {
-      const gStart = g.startDate.split('T')[0];
-      const gEnd = g.endDate.split('T')[0];
+      const gStart = getItemDateStr(g.startDate);
+      const gEnd = getItemDateStr(g.endDate);
       return gStart <= weekEndStr && gEnd >= weekStartStr;
     });
   }, [goals, weekStartStr, weekEndStr, filters.showGoals]);
@@ -167,14 +167,14 @@ export const WeekView: React.FC<WeekViewProps> = ({
           </div>
           {days.map((day) => {
             const dayAllDayEvents = allDayEvents.filter(
-              (e) => e.start.split('T')[0] === day.dateStr
+              (e) => getItemDateStr(e.start) === day.dateStr
             );
             const dayAllDayTasks = allDayTasks.filter(
-              (t) => t.dueDate?.split('T')[0] === day.dateStr
+              (t) => getItemDateStr(t.dueDate) === day.dateStr
             );
             const dayGoals = activeGoals.filter((g) => {
-              const gStart = g.startDate.split('T')[0];
-              const gEnd = g.endDate.split('T')[0];
+              const gStart = getItemDateStr(g.startDate);
+              const gEnd = getItemDateStr(g.endDate);
               return day.dateStr >= gStart && day.dateStr <= gEnd;
             });
 
@@ -263,10 +263,10 @@ export const WeekView: React.FC<WeekViewProps> = ({
           {days.map((day) => {
             const dayStr = day.dateStr;
             const dayEvents = timedEvents.filter(
-              (e) => e.start.split('T')[0] === dayStr
+              (e) => getItemDateStr(e.start) === dayStr
             );
             const dayTasks = timedTasks.filter(
-              (t) => t.dueDate?.split('T')[0] === dayStr
+              (t) => getItemDateStr(t.dueDate) === dayStr
             );
 
             return (

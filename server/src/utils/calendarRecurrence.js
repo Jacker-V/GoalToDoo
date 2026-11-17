@@ -38,7 +38,7 @@ export function expandEventOccurrences(event, fromDate, toDate) {
       const stepMs = interval * 24 * 60 * 60 * 1000;
       const jumpSteps = Math.floor(diffMs / stepMs);
       if (jumpSteps > 1) {
-        curr = new Date(curr.getTime() + (jumpSteps - 1) * stepMs);
+        curr.setDate(curr.getDate() + (jumpSteps - 1) * interval);
       }
     }
 
@@ -48,7 +48,7 @@ export function expandEventOccurrences(event, fromDate, toDate) {
       if (curr <= toDate && occEnd >= fromDate && curr >= baseStart) {
         occurrences.push(createInstance(event, curr, occEnd, baseStart));
       }
-      curr = new Date(curr.getTime() + interval * 24 * 60 * 60 * 1000);
+      curr.setDate(curr.getDate() + interval);
       count++;
     }
   } else if (recurrence.type === 'weekdays') {
@@ -57,7 +57,7 @@ export function expandEventOccurrences(event, fromDate, toDate) {
       const diffDays = Math.floor((fromDate.getTime() - curr.getTime()) / (24 * 60 * 60 * 1000));
       if (diffDays > 7) {
         const jumpDays = Math.floor(diffDays / 7) * 7;
-        curr = new Date(curr.getTime() + jumpDays * 24 * 60 * 60 * 1000);
+        curr.setDate(curr.getDate() + jumpDays);
       }
     }
 
@@ -70,7 +70,7 @@ export function expandEventOccurrences(event, fromDate, toDate) {
           occurrences.push(createInstance(event, curr, occEnd, baseStart));
         }
       }
-      curr = new Date(curr.getTime() + 24 * 60 * 60 * 1000);
+      curr.setDate(curr.getDate() + 1);
       count++;
     }
   } else if (recurrence.type === 'weekly') {
@@ -80,24 +80,28 @@ export function expandEventOccurrences(event, fromDate, toDate) {
         ? recurrence.daysOfWeek
         : [baseStart.getDay()];
 
+    // Align to Monday of baseStart's week (Monday = 0, ..., Sunday = 6)
+    const mondayOffset = baseStart.getDay() === 0 ? 6 : baseStart.getDay() - 1;
     let currWeekStart = new Date(baseStart);
     currWeekStart.setHours(0, 0, 0, 0);
-    currWeekStart.setDate(currWeekStart.getDate() - currWeekStart.getDay());
+    currWeekStart.setDate(currWeekStart.getDate() - mondayOffset);
 
     if (currWeekStart < fromDate) {
       const diffMs = fromDate.getTime() - currWeekStart.getTime();
       const weekStepMs = interval * 7 * 24 * 60 * 60 * 1000;
       const jumpWeeks = Math.floor(diffMs / weekStepMs);
       if (jumpWeeks > 1) {
-        currWeekStart = new Date(currWeekStart.getTime() + (jumpWeeks - 1) * weekStepMs);
+        currWeekStart.setDate(currWeekStart.getDate() + (jumpWeeks - 1) * interval * 7);
       }
     }
 
     let count = 0;
     while (currWeekStart <= effectiveEndLimit && count < 500) {
       for (const targetDay of daysOfWeek) {
+        // Target day: 0 is Sun (offset 6), 1 is Mon (offset 0), ..., 6 is Sat (offset 5)
+        const dayOffset = targetDay === 0 ? 6 : targetDay - 1;
         const occStart = new Date(currWeekStart);
-        occStart.setDate(currWeekStart.getDate() + targetDay);
+        occStart.setDate(currWeekStart.getDate() + dayOffset);
         occStart.setHours(
           baseStart.getHours(),
           baseStart.getMinutes(),
@@ -112,7 +116,7 @@ export function expandEventOccurrences(event, fromDate, toDate) {
           }
         }
       }
-      currWeekStart = new Date(currWeekStart.getTime() + interval * 7 * 24 * 60 * 60 * 1000);
+      currWeekStart.setDate(currWeekStart.getDate() + interval * 7);
       count++;
     }
   } else if (recurrence.type === 'monthly') {
@@ -122,7 +126,17 @@ export function expandEventOccurrences(event, fromDate, toDate) {
     const baseMonth = baseStart.getMonth();
 
     let step = 0;
-    while (step < 240) {
+    if (baseStart < fromDate) {
+      const yearDiff = fromDate.getFullYear() - baseYear;
+      const monthDiff = fromDate.getMonth() - baseMonth;
+      const totalMonthDiff = yearDiff * 12 + monthDiff;
+      if (totalMonthDiff > 0) {
+        step = Math.max(0, Math.floor(totalMonthDiff / interval) - 1);
+      }
+    }
+
+    let count = 0;
+    while (count < 240) {
       const targetMonthIndex = baseMonth + step * interval;
       // Calculate target date by clamping to last day of month if overflow
       const targetYear = baseYear + Math.floor(targetMonthIndex / 12);
@@ -151,6 +165,7 @@ export function expandEventOccurrences(event, fromDate, toDate) {
         }
       }
       step++;
+      count++;
     }
   } else if (recurrence.type === 'yearly') {
     const interval = Math.max(1, recurrence.interval || 1);
@@ -159,7 +174,15 @@ export function expandEventOccurrences(event, fromDate, toDate) {
     const baseYear = baseStart.getFullYear();
 
     let step = 0;
-    while (step < 100) {
+    if (baseStart < fromDate) {
+      const yearDiff = fromDate.getFullYear() - baseYear;
+      if (yearDiff > 0) {
+        step = Math.max(0, Math.floor(yearDiff / interval) - 1);
+      }
+    }
+
+    let count = 0;
+    while (count < 100) {
       const targetYear = baseYear + step * interval;
       const lastDayOfTargetMonth = new Date(targetYear, monthOfYear + 1, 0).getDate();
       const actualDay = Math.min(dayOfMonth, lastDayOfTargetMonth);
@@ -185,6 +208,7 @@ export function expandEventOccurrences(event, fromDate, toDate) {
         }
       }
       step++;
+      count++;
     }
   }
 

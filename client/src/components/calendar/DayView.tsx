@@ -16,7 +16,7 @@ import type { Goal } from '../../types/goal';
 import type { CalendarFilterState } from '../../types/calendar';
 import type { CalendarSelectedItem } from './CalendarItemDetailModal';
 import { formatLocalDate, formatDateVi } from '../../utils/date';
-import { formatTimeHHmm } from '../../utils/calendar';
+import { formatTimeHHmm, getItemDateStr } from '../../utils/calendar';
 
 interface DayViewProps {
   currentDate: Date;
@@ -58,7 +58,7 @@ export const DayView: React.FC<DayViewProps> = ({
   const dayEvents = React.useMemo(() => {
     if (!filters.showEvents) return [];
     return events.filter((e) => {
-      const sDate = e.start.split('T')[0];
+      const sDate = getItemDateStr(e.start);
       return sDate === dateStr;
     });
   }, [events, dateStr, filters.showEvents]);
@@ -66,15 +66,15 @@ export const DayView: React.FC<DayViewProps> = ({
   // Filter tasks for this day
   const dayTasks = React.useMemo(() => {
     if (!filters.showTasks) return [];
-    return tasks.filter((t) => t.dueDate?.split('T')[0] === dateStr);
+    return tasks.filter((t) => getItemDateStr(t.dueDate) === dateStr);
   }, [tasks, dateStr, filters.showTasks]);
 
   // Filter goals active on this day
   const activeGoals = React.useMemo(() => {
     if (!filters.showGoals) return [];
     return goals.filter((g) => {
-      const gStart = g.startDate.split('T')[0];
-      const gEnd = g.endDate.split('T')[0];
+      const gStart = getItemDateStr(g.startDate);
+      const gEnd = getItemDateStr(g.endDate);
       return dateStr >= gStart && dateStr <= gEnd;
     });
   }, [goals, dateStr, filters.showGoals]);

@@ -54,43 +54,59 @@ export const CalendarHeader: React.FC<CalendarHeaderProps> = ({
   };
 
   const handlePrev = () => {
-    const nextDate = new Date(currentDate);
     if (viewMode === 'month') {
-      nextDate.setMonth(nextDate.getMonth() - 1);
+      const targetYear = currentDate.getFullYear();
+      const targetMonth = currentDate.getMonth() - 1;
+      const lastDayOfTarget = new Date(targetYear, targetMonth + 1, 0).getDate();
+      const safeDay = Math.min(currentDate.getDate(), lastDayOfTarget);
+      onDateChange(new Date(targetYear, targetMonth, safeDay, 12, 0, 0));
     } else if (viewMode === 'week') {
+      const nextDate = new Date(currentDate);
       nextDate.setDate(nextDate.getDate() - 7);
+      onDateChange(nextDate);
     } else if (viewMode === 'day') {
+      const nextDate = new Date(currentDate);
       nextDate.setDate(nextDate.getDate() - 1);
+      onDateChange(nextDate);
     } else {
+      const nextDate = new Date(currentDate);
       nextDate.setDate(nextDate.getDate() - 14);
+      onDateChange(nextDate);
     }
-    onDateChange(nextDate);
   };
 
   const handleNext = () => {
-    const nextDate = new Date(currentDate);
     if (viewMode === 'month') {
-      nextDate.setMonth(nextDate.getMonth() + 1);
+      const targetYear = currentDate.getFullYear();
+      const targetMonth = currentDate.getMonth() + 1;
+      const lastDayOfTarget = new Date(targetYear, targetMonth + 1, 0).getDate();
+      const safeDay = Math.min(currentDate.getDate(), lastDayOfTarget);
+      onDateChange(new Date(targetYear, targetMonth, safeDay, 12, 0, 0));
     } else if (viewMode === 'week') {
+      const nextDate = new Date(currentDate);
       nextDate.setDate(nextDate.getDate() + 7);
+      onDateChange(nextDate);
     } else if (viewMode === 'day') {
+      const nextDate = new Date(currentDate);
       nextDate.setDate(nextDate.getDate() + 1);
+      onDateChange(nextDate);
     } else {
+      const nextDate = new Date(currentDate);
       nextDate.setDate(nextDate.getDate() + 14);
+      onDateChange(nextDate);
     }
-    onDateChange(nextDate);
   };
 
   const handleYearChange = (newYear: number) => {
-    const d = new Date(currentDate);
-    d.setFullYear(newYear);
-    onDateChange(d);
+    const lastDayOfTarget = new Date(newYear, month + 1, 0).getDate();
+    const safeDay = Math.min(currentDate.getDate(), lastDayOfTarget);
+    onDateChange(new Date(newYear, month, safeDay, 12, 0, 0));
   };
 
   const handleMonthChange = (newMonth: number) => {
-    const d = new Date(currentDate);
-    d.setMonth(newMonth);
-    onDateChange(d);
+    const lastDayOfTarget = new Date(year, newMonth + 1, 0).getDate();
+    const safeDay = Math.min(currentDate.getDate(), lastDayOfTarget);
+    onDateChange(new Date(year, newMonth, safeDay, 12, 0, 0));
   };
 
   // Title string depending on view

@@ -52,10 +52,15 @@ describe('Calendar Aggregation API (/api/v1/calendar)', () => {
     });
 
     it('returns 400 when from or to date format is invalid', async () => {
-      const res = await request(app)
+      const res1 = await request(app)
         .get('/api/v1/calendar?from=not-a-date&to=2026-11-30')
         .set('Authorization', `Bearer ${token}`);
-      expect(res.status).toBe(400);
+      expect(res1.status).toBe(400);
+
+      const res2 = await request(app)
+        .get('/api/v1/calendar?from=2026-02-31&to=2026-03-31')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res2.status).toBe(400);
     });
 
     it('returns 400 when to is earlier than from', async () => {
@@ -346,6 +351,134 @@ describe('Calendar Aggregation API (/api/v1/calendar)', () => {
       expect(annivDate.getFullYear()).toBe(2026);
       expect(annivDate.getMonth()).toBe(10); // Nov is 10 (0-indexed)
       expect(annivDate.getDate()).toBe(15);
+    });
+
+    it('filters aggregated items by categoryId=null for uncategorized tasks and goals', async () => {
+      const catWork = await Category.create({ userId: user._id, name: 'Work' });
+
+      // Categorized items
+      const workGoal = await Goal.create({
+        userId: user._id,
+        title: 'Work Goal',
+        startDate: new Date('2026-11-01T00:00:00Z'),
+        endDate: new Date('2026-11-30T23:59:59Z'),
+        categoryId: catWork._id,
+      });
+      await Task.create({
+        userId: user._id,
+        title: 'Work Task',
+        dueDate: new Date('2026-11-10T10:00:00Z'),
+        goalId: workGoal._id,
+      });
+      await Event.create({
+        userId: user._id,
+        title: 'Work Event',
+        start: new Date('2026-11-10T09:00:00Z'),
+        end: new Date('2026-11-10T10:00:00Z'),
+        categoryId: catWork._id,
+      });
+
+      // Uncategorized items
+      const uncatGoal = await Goal.create({
+        userId: user._id,
+        title: 'Personal Uncategorized Goal',
+        startDate: new Date('2026-11-01T00:00:00Z'),
+        endDate: new Date('2026-11-30T23:59:59Z'),
+        categoryId: null,
+      });
+      await Task.create({
+        userId: user._id,
+        title: 'Task Under Uncategorized Goal',
+        dueDate: new Date('2026-11-12T10:00:00Z'),
+        goalId: uncatGoal._id,
+      });
+      await Task.create({
+        userId: user._id,
+        title: 'Standalone Task Without Goal',
+        dueDate: new Date('2026-11-14T10:00:00Z'),
+        goalId: null,
+      });
+      await Event.create({
+        userId: user._id,
+        title: 'Uncategorized Event',
+        start: new Date('2026-11-15T09:00:00Z'),
+        end: new Date('2026-11-15T10:00:00Z'),
+        categoryId: null,
+      });
+
+      const res = await request(app)
+        .get('/api/v1/calendar?from=2026-11-01&to=2026-11-30&categoryId=null')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      const { events, tasks, goals } = res.body.data;
+
+      expect(events).toHaveLength(1);
+      expect(events[0].title).toBe('Uncategorized Event');
+
+      expect(goals).toHaveLength(1);
+      expect(goals[0].title).toBe('Personal Uncategorized Goal');
+
+      expect(tasks).toHaveLength(2);
+      const taskTitles = tasks.map((t) => t.title);
+      expect(taskTitles).toContain('Task Under Uncategorized Goal');
+      expect(taskTitles).toContain('Standalone Task Without Goal');
+    });
+
+    it('correctly expands weekly recurrence with interval 2 on Friday and Sunday without skipping Sunday', async () => {
+      // Event starting Friday Nov 20, 2026, repeating every 2 weeks on Friday (5) and Sunday (0)
+      await Event.create({
+        userId: user._id,
+        title: 'Bi-weekly Weekend Workout',
+        start: new Date('2026-11-20T10:00:00Z'), // Friday
+        end: new Date('2026-11-20T11:00:00Z'),
+        recurrence: {
+          type: 'weekly',
+          interval: 2,
+          daysOfWeek: [5, 0], // Fri, Sun
+        },
+      });
+
+      const res = await request(app)
+        .get('/api/v1/calendar?from=2026-11-01&to=2026-12-15')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      const { events } = res.body.data;
+      const workoutEvents = events.filter((e) => e.title === 'Bi-weekly Weekend Workout');
+
+      // Nov 20 (Fri), Nov 22 (Sun), Dec 4 (Fri), Dec 6 (Sun)
+      expect(workoutEvents.length).toBe(4);
+      const dateStrings = workoutEvents.map((e) => new Date(e.start).toISOString().slice(0, 10));
+      expect(dateStrings).toEqual(['2026-11-20', '2026-11-22', '2026-12-04', '2026-12-06']);
+    });
+
+    it('expands recurring monthly events created decades ago across current calendar window', async () => {
+      // Created 25 years ago (January 15, 2001)
+      await Event.create({
+        userId: user._id,
+        title: 'Old Monthly Subscription Payment',
+        start: new Date('2001-01-15T09:00:00Z'),
+        end: new Date('2001-01-15T10:00:00Z'),
+        recurrence: {
+          type: 'monthly',
+          interval: 1,
+        },
+      });
+
+      const res = await request(app)
+        .get('/api/v1/calendar?from=2026-11-01&to=2026-11-30')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      const { events } = res.body.data;
+      const subEvents = events.filter((e) => e.title === 'Old Monthly Subscription Payment');
+
+      expect(subEvents).toHaveLength(1);
+      const eventDate = new Date(subEvents[0].start);
+      expect(eventDate.getFullYear()).toBe(2026);
+      expect(eventDate.getMonth()).toBe(10); // Nov
+      expect(eventDate.getDate()).toBe(15);
     });
 
     it('returns empty lists when no records match without error', async () => {

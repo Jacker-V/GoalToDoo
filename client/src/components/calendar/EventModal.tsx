@@ -11,6 +11,8 @@ import {
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { getItemDateStr } from '../../utils/calendar';
+import { formatLocalDate } from '../../utils/date';
 import type {
   CalendarEvent,
   CreateEventInput,
@@ -100,12 +102,12 @@ export const EventModal: React.FC<EventModalProps> = ({
       const s = new Date(event.start);
       const e = new Date(event.end);
 
-      const sDateStr = !isNaN(s.getTime()) ? s.toISOString().split('T')[0] : '';
+      const sDateStr = !isNaN(s.getTime()) ? getItemDateStr(s) : '';
       const sTimeStr = !isNaN(s.getTime())
         ? `${String(s.getHours()).padStart(2, '0')}:${String(s.getMinutes()).padStart(2, '0')}`
         : '09:00';
 
-      const eDateStr = !isNaN(e.getTime()) ? e.toISOString().split('T')[0] : '';
+      const eDateStr = !isNaN(e.getTime()) ? getItemDateStr(e) : '';
       const eTimeStr = !isNaN(e.getTime())
         ? `${String(e.getHours()).padStart(2, '0')}:${String(e.getMinutes()).padStart(2, '0')}`
         : '10:00';
@@ -122,12 +124,12 @@ export const EventModal: React.FC<EventModalProps> = ({
       setInterval(event.recurrence?.interval || 1);
       setDaysOfWeek(event.recurrence?.daysOfWeek || []);
       setRecurrenceEndDate(
-        event.recurrence?.endDate ? event.recurrence.endDate.split('T')[0] : ''
+        event.recurrence?.endDate ? getItemDateStr(event.recurrence.endDate) : ''
       );
 
       setReminders(event.reminders || []);
     } else {
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = formatLocalDate(new Date());
       const defaultDate = initialDate || todayStr;
       const defaultStart = initialStartTime || '09:00';
 

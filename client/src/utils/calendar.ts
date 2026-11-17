@@ -56,37 +56,19 @@ export const getMonthDays = (year: number, month: number): CalendarDayInfo[] => 
     });
   }
 
-  // Next month padding to complete 7-day columns (multiple of 7)
-  const remaining = (7 - (days.length % 7)) % 7;
-  // If we have 35 days and that covers all, fine; if not, we might end up with 35 or 42.
-  // We can pad remaining days of current week:
-  for (let i = 1; i <= remaining; i++) {
-    const d = new Date(year, month + 1, i);
-    const dateStr = formatLocalDate(d);
+  // Next month padding to always complete 6 full weeks (42 days)
+  while (days.length < 42) {
+    const prevDate = days[days.length - 1].date;
+    const nextDate = new Date(prevDate);
+    nextDate.setDate(prevDate.getDate() + 1);
+    const dateStr = formatLocalDate(nextDate);
     days.push({
-      date: d,
+      date: nextDate,
       dateStr,
-      dayNumber: i,
+      dayNumber: nextDate.getDate(),
       isCurrentMonth: false,
       isToday: dateStr === todayStr,
     });
-  }
-
-  // Ensure 6 rows (42 days) if it was 35 and there's space, or keep at 35/42
-  if (days.length === 35) {
-    const lastDayPushed = days[days.length - 1].date;
-    const startNext = lastDayPushed.getDate() + 1;
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(year, month + 1, startNext + i);
-      const dateStr = formatLocalDate(d);
-      days.push({
-        date: d,
-        dateStr,
-        dayNumber: d.getDate(),
-        isCurrentMonth: false,
-        isToday: dateStr === todayStr,
-      });
-    }
   }
 
   return days;
@@ -121,6 +103,25 @@ export const getWeekDays = (refDate: Date): CalendarDayInfo[] => {
 };
 
 /**
+ * Safely extracts YYYY-MM-DD date string in local calendar time.
+ * If already a YYYY-MM-DD string, returns it directly without timezone shift.
+ */
+export const getItemDateStr = (dateInput?: string | Date | null): string => {
+  if (!dateInput) return '';
+  if (typeof dateInput === 'string') {
+    const trimmed = dateInput.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      return trimmed;
+    }
+    const d = new Date(trimmed);
+    if (isNaN(d.getTime())) return '';
+    return formatLocalDate(d);
+  }
+  if (isNaN(dateInput.getTime())) return '';
+  return formatLocalDate(dateInput);
+};
+
+/**
  * Formats a Date or ISO string to HH:mm
  */
 export const formatTimeHHmm = (input?: string | Date | null): string => {
@@ -137,12 +138,12 @@ export const formatTimeHHmm = (input?: string | Date | null): string => {
  */
 export const isDateWithinInterval = (
   targetDateStr: string,
-  startDateStr: string,
-  endDateStr: string
+  startDateInput: string | Date,
+  endDateInput: string | Date
 ): boolean => {
-  const target = targetDateStr.split('T')[0];
-  const start = startDateStr.split('T')[0];
-  const end = endDateStr.split('T')[0];
+  const target = getItemDateStr(targetDateStr);
+  const start = getItemDateStr(startDateInput);
+  const end = getItemDateStr(endDateInput);
   return target >= start && target <= end;
 };
 

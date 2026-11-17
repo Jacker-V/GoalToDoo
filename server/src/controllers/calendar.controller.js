@@ -15,13 +15,29 @@ export const parseDateRange = (fromStr, toStr) => {
   let toDate;
 
   if (/^\d{4}-\d{2}-\d{2}$/.test(fromStr.trim())) {
-    fromDate = new Date(`${fromStr.trim()}T00:00:00.000Z`);
+    const [y, m, d] = fromStr.trim().split('-').map(Number);
+    fromDate = new Date(Date.UTC(y, m - 1, d, 0, 0, 0, 0));
+    if (
+      fromDate.getUTCFullYear() !== y ||
+      fromDate.getUTCMonth() !== m - 1 ||
+      fromDate.getUTCDate() !== d
+    ) {
+      throw new AppError('Invalid calendar date for "from"', 400, 'INVALID_DATE_FORMAT');
+    }
   } else {
     fromDate = new Date(fromStr);
   }
 
   if (/^\d{4}-\d{2}-\d{2}$/.test(toStr.trim())) {
-    toDate = new Date(`${toStr.trim()}T23:59:59.999Z`);
+    const [y, m, d] = toStr.trim().split('-').map(Number);
+    toDate = new Date(Date.UTC(y, m - 1, d, 23, 59, 59, 999));
+    if (
+      toDate.getUTCFullYear() !== y ||
+      toDate.getUTCMonth() !== m - 1 ||
+      toDate.getUTCDate() !== d
+    ) {
+      throw new AppError('Invalid calendar date for "to"', 400, 'INVALID_DATE_FORMAT');
+    }
   } else {
     toDate = new Date(toStr);
   }
@@ -45,7 +61,14 @@ export const getCalendarData = async (req, res, next) => {
     const userId = req.user._id;
 
     // --- 1. Fetch & Expand Events ---
-    const eventFilter = { userId };
+    // Efficiently query: recurring events OR non-recurring events intersecting range
+    const eventFilter = {
+      userId,
+      $or: [
+        { 'recurrence.type': { $exists: true, $nin: ['none', null] } },
+        { start: { $lte: toDate }, end: { $gte: fromDate } },
+      ],
+    };
     if (categoryId !== undefined) {
       eventFilter.categoryId = categoryId === 'null' ? null : categoryId;
     }
@@ -71,7 +94,16 @@ export const getCalendarData = async (req, res, next) => {
       const catVal = categoryId === 'null' ? null : categoryId;
       const goalsWithCategory = await Goal.find({ userId, categoryId: catVal }).select('_id');
       const goalIds = goalsWithCategory.map((g) => g._id);
-      taskFilter.goalId = { $in: goalIds };
+
+      if (catVal === null) {
+        // If uncategorized, task may belong to an uncategorized goal OR have no goal (goalId: null)
+        taskFilter.$or = [
+          { goalId: { $in: goalIds } },
+          { goalId: null },
+        ];
+      } else {
+        taskFilter.goalId = { $in: goalIds };
+      }
     }
 
     const tasks = await Task.find(taskFilter).sort({ dueDate: 1, dueTime: 1, order: 1 });

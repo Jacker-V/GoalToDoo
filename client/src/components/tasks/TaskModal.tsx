@@ -3,6 +3,7 @@ import { Plus, X, Calendar, Clock, Repeat, Target, Tag, ListChecks } from 'lucid
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { getItemDateStr } from '../../utils/calendar';
 import type { Task, CreateTaskInput, Subtask, Priority, RecurrenceType } from '../../types/task';
 import type { Goal } from '../../types/goal';
 
@@ -44,7 +45,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     if (task) {
       setTitle(task.title || '');
       setNotes(task.notes || '');
-      setDueDate(task.dueDate ? task.dueDate.split('T')[0] : '');
+      setDueDate(task.dueDate ? getItemDateStr(task.dueDate) : '');
       setDueTime(task.dueTime || '');
       setPriority(task.priority || 'medium');
       setGoalId(task.goalId || '');
@@ -113,7 +114,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     const payload: CreateTaskInput = {
       title: title.trim(),
       notes: notes.trim(),
-      dueDate: dueDate ? new Date(dueDate).toISOString() : null,
+      dueDate: dueDate ? new Date(`${dueDate}T00:00:00.000Z`).toISOString() : null,
       dueTime: dueTime ? dueTime.trim() : null,
       priority,
       goalId: goalId || null,

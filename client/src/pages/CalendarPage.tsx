@@ -255,23 +255,32 @@ export const CalendarPage: React.FC = () => {
       const durationMs = originalEnd.getTime() - originalStart.getTime();
 
       let newStart: Date;
-      if (targetTimeStr) {
+      let newEnd: Date;
+      const updateData: Partial<CreateEventInput> = {};
+
+      if (eventToMove.allDay && !targetTimeStr) {
+        newStart = new Date(`${targetDateStr}T00:00:00.000Z`);
+        newEnd = new Date(newStart.getTime() + durationMs);
+      } else if (targetTimeStr) {
         const [th, tm] = targetTimeStr.split(':').map(Number);
         newStart = new Date(`${targetDateStr}T${String(th).padStart(2, '0')}:${String(tm).padStart(2, '0')}:00`);
+        newEnd = new Date(newStart.getTime() + durationMs);
+        if (eventToMove.allDay) {
+          updateData.allDay = false;
+        }
       } else {
         const h = originalStart.getHours();
         const m = originalStart.getMinutes();
         newStart = new Date(`${targetDateStr}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`);
+        newEnd = new Date(newStart.getTime() + durationMs);
       }
 
-      const newEnd = new Date(newStart.getTime() + durationMs);
+      updateData.start = newStart.toISOString();
+      updateData.end = newEnd.toISOString();
 
       updateEventMutation.mutate({
         id: eventToMove.originalId || eventToMove._id,
-        data: {
-          start: newStart.toISOString(),
-          end: newEnd.toISOString(),
-        },
+        data: updateData,
       });
     } else if (type === 'task') {
       const taskToMove = calendarData.tasks.find((t) => t._id === id);

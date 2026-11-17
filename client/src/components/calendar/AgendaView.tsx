@@ -15,7 +15,7 @@ import type { Goal } from '../../types/goal';
 import type { CalendarFilterState } from '../../types/calendar';
 import type { CalendarSelectedItem } from './CalendarItemDetailModal';
 import { formatDateVi, formatLocalDate } from '../../utils/date';
-import { formatTimeHHmm } from '../../utils/calendar';
+import { formatTimeHHmm, getItemDateStr } from '../../utils/calendar';
 
 interface AgendaViewProps {
   currentDate: Date;
@@ -69,7 +69,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
     // Distribute events
     if (filters.showEvents) {
       for (const e of events) {
-        const sDate = e.start.split('T')[0];
+        const sDate = getItemDateStr(e.start);
         if (datesMap.has(sDate)) {
           datesMap.get(sDate)!.events.push(e);
         }
@@ -80,7 +80,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
     if (filters.showTasks) {
       for (const t of tasks) {
         if (t.dueDate) {
-          const dDate = t.dueDate.split('T')[0];
+          const dDate = getItemDateStr(t.dueDate);
           if (datesMap.has(dDate)) {
             datesMap.get(dDate)!.tasks.push(t);
           }
@@ -91,8 +91,8 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
     // Distribute goals
     if (filters.showGoals) {
       for (const g of goals) {
-        const gStart = g.startDate.split('T')[0];
-        const gEnd = g.endDate.split('T')[0];
+        const gStart = getItemDateStr(g.startDate);
+        const gEnd = getItemDateStr(g.endDate);
         datesMap.forEach((entry, dStr) => {
           if (dStr >= gStart && dStr <= gEnd) {
             entry.goals.push(g);
