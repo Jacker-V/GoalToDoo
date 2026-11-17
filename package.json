@@ -1,0 +1,15 @@
+{
+  "name": "goalcalendar",
+  "version": "1.0.0",
+  "description": "GoalCalendar - Combining Google Calendar with hierarchical Goal Management & Todo progress tracking",
+  "scripts": {
+    "test": "npm run test:server",
+    "dev:server": "cd server && npm run dev",
+    "dev:client": "cd client && npm run dev",
+    "test:server": "cd server && npm test",
+    "build:client": "cd client && npm run build"
+  },
+  "keywords": ["calendar", "goals", "todo", "productivity", "react", "nodejs", "mongodb"],
+  "author": "",
+  "license": "MIT"
+}
