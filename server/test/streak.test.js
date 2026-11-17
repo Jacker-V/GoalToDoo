@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { calculateStreak } from '../src/controllers/task.controller.js';
+import { calculateLongestStreak } from '../src/utils/streak.js';
 
 describe('Streak Calculation Engine - Unit Tests', () => {
   const refDate = new Date('2026-11-17T12:00:00Z');
@@ -71,5 +72,37 @@ describe('Streak Calculation Engine - Unit Tests', () => {
     const result = calculateStreak(dates, leapRef);
     expect(result.streak).toBe(3);
     expect(result.isCompletedToday).toBe(true);
+  });
+
+  describe('calculateLongestStreak', () => {
+    it('returns 0 for empty or invalid input', () => {
+      expect(calculateLongestStreak([])).toBe(0);
+      expect(calculateLongestStreak(null)).toBe(0);
+      expect(calculateLongestStreak(undefined)).toBe(0);
+    });
+
+    it('returns 1 for a single date', () => {
+      expect(calculateLongestStreak(['2026-11-17'])).toBe(1);
+    });
+
+    it('returns correct longest streak with gaps', () => {
+      const dates = [
+        '2026-01-01',
+        '2026-01-02',
+        '2026-01-03', // streak 3
+        '2026-01-07',
+        '2026-01-08',
+        '2026-01-09',
+        '2026-01-10',
+        '2026-01-11', // streak 5
+        '2026-01-20',
+      ];
+      expect(calculateLongestStreak(dates)).toBe(5);
+    });
+
+    it('handles unsorted and duplicate dates', () => {
+      const dates = ['2026-05-02', '2026-05-01', '2026-05-02', '2026-05-03'];
+      expect(calculateLongestStreak(dates)).toBe(3);
+    });
   });
 });

@@ -20,6 +20,7 @@ import type {
   EventRecurrenceType,
 } from '../../types/event';
 import type { Category } from '../../types/category';
+import { useI18n } from '../../i18n';
 
 interface EventModalProps {
   isOpen: boolean;
@@ -27,40 +28,21 @@ interface EventModalProps {
   onSubmit: (data: CreateEventInput) => Promise<void>;
   event?: CalendarEvent | null;
   categories?: Category[];
-  initialDate?: string; // YYYY-MM-DD
-  initialStartTime?: string; // HH:mm
+  initialDate?: string;
+  initialStartTime?: string;
   isLoading?: boolean;
 }
 
 const PRESET_COLORS = [
-  '#6366f1', // Indigo
-  '#3b82f6', // Blue
-  '#10b981', // Emerald
-  '#f59e0b', // Amber
-  '#ef4444', // Red
-  '#8b5cf6', // Violet
-  '#ec4899', // Pink
-  '#06b6d4', // Cyan
-  '#64748b', // Slate
-];
-
-const WEEKDAY_OPTIONS = [
-  { label: 'T2', value: 1 },
-  { label: 'T3', value: 2 },
-  { label: 'T4', value: 3 },
-  { label: 'T5', value: 4 },
-  { label: 'T6', value: 5 },
-  { label: 'T7', value: 6 },
-  { label: 'CN', value: 0 },
-];
-
-const REMINDER_OPTIONS = [
-  { label: '5 phút trước', value: 5 },
-  { label: '10 phút trước', value: 10 },
-  { label: '15 phút trước', value: 15 },
-  { label: '30 phút trước', value: 30 },
-  { label: '1 giờ trước', value: 60 },
-  { label: '1 ngày trước', value: 1440 },
+  '#6366f1',
+  '#3b82f6',
+  '#10b981',
+  '#f59e0b',
+  '#ef4444',
+  '#8b5cf6',
+  '#ec4899',
+  '#06b6d4',
+  '#64748b',
 ];
 
 export const EventModal: React.FC<EventModalProps> = ({
@@ -73,6 +55,7 @@ export const EventModal: React.FC<EventModalProps> = ({
   initialStartTime,
   isLoading = false,
 }) => {
+  const { t, language } = useI18n();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -94,56 +77,75 @@ export const EventModal: React.FC<EventModalProps> = ({
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
+  const WEEKDAY_OPTIONS = [
+    { label: language === 'vi' ? 'T2' : 'M', value: 1 },
+    { label: language === 'vi' ? 'T3' : 'Tu', value: 2 },
+    { label: language === 'vi' ? 'T4' : 'W', value: 3 },
+    { label: language === 'vi' ? 'T5' : 'Th', value: 4 },
+    { label: language === 'vi' ? 'T6' : 'F', value: 5 },
+    { label: language === 'vi' ? 'T7' : 'Sa', value: 6 },
+    { label: language === 'vi' ? 'CN' : 'Su', value: 0 },
+  ];
+
+  const REMINDER_OPTIONS = [
+    { label: language === 'vi' ? '5 phút trước' : '5m before', value: 5 },
+    { label: language === 'vi' ? '15 phút trước' : '15m before', value: 15 },
+    { label: language === 'vi' ? '30 phút trước' : '30m before', value: 30 },
+    { label: language === 'vi' ? '1 giờ trước' : '1h before', value: 60 },
+    { label: language === 'vi' ? '1 ngày trước' : '1d before', value: 1440 },
+  ];
+
   useEffect(() => {
     if (event) {
       setTitle(event.title || '');
       setDescription(event.description || '');
-
-      const s = new Date(event.start);
-      const e = new Date(event.end);
-
-      const sDateStr = !isNaN(s.getTime()) ? getItemDateStr(s) : '';
-      const sTimeStr = !isNaN(s.getTime())
-        ? `${String(s.getHours()).padStart(2, '0')}:${String(s.getMinutes()).padStart(2, '0')}`
-        : '09:00';
-
-      const eDateStr = !isNaN(e.getTime()) ? getItemDateStr(e) : '';
-      const eTimeStr = !isNaN(e.getTime())
-        ? `${String(e.getHours()).padStart(2, '0')}:${String(e.getMinutes()).padStart(2, '0')}`
-        : '10:00';
-
-      setStartDate(sDateStr);
-      setStartTime(sTimeStr);
-      setEndDate(eDateStr);
-      setEndTime(eTimeStr);
+      setStartDate(getItemDateStr(event.start));
+      setEndDate(getItemDateStr(event.end));
       setAllDay(Boolean(event.allDay));
       setColor(event.color || '#6366f1');
       setCategoryId(event.categoryId || '');
 
-      setRecurrenceType(event.recurrence?.type || 'none');
-      setInterval(event.recurrence?.interval || 1);
-      setDaysOfWeek(event.recurrence?.daysOfWeek || []);
-      setRecurrenceEndDate(
-        event.recurrence?.endDate ? getItemDateStr(event.recurrence.endDate) : ''
-      );
+      if (!event.allDay) {
+        const s = new Date(event.start);
+        const e = new Date(event.end);
+        const shh = String(s.getHours()).padStart(2, '0');
+        const smm = String(s.getMinutes()).padStart(2, '0');
+        const ehh = String(e.getHours()).padStart(2, '0');
+        const emm = String(e.getMinutes()).padStart(2, '0');
+        setStartTime(`${shh}:${smm}`);
+        setEndTime(`${ehh}:${emm}`);
+      } else {
+        setStartTime('09:00');
+        setEndTime('10:00');
+      }
+
+      if (event.recurrence && event.recurrence.type) {
+        setRecurrenceType(event.recurrence.type);
+        setInterval(event.recurrence.interval || 1);
+        setDaysOfWeek(event.recurrence.daysOfWeek || []);
+        setRecurrenceEndDate(
+          event.recurrence.endDate ? getItemDateStr(event.recurrence.endDate) : ''
+        );
+      } else {
+        setRecurrenceType('none');
+        setInterval(1);
+        setDaysOfWeek([]);
+        setRecurrenceEndDate('');
+      }
 
       setReminders(event.reminders || []);
     } else {
-      const todayStr = formatLocalDate(new Date());
-      const defaultDate = initialDate || todayStr;
-      const defaultStart = initialStartTime || '09:00';
-
+      const defaultDate = initialDate || formatLocalDate(new Date());
       setTitle('');
       setDescription('');
       setStartDate(defaultDate);
-      setStartTime(defaultStart);
       setEndDate(defaultDate);
-
-      // default end 1 hour later
-      const [h, m] = defaultStart.split(':').map(Number);
-      const endH = (h + 1) % 24;
-      setEndTime(`${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
-
+      setStartTime(initialStartTime || '09:00');
+      setEndTime(
+        initialStartTime
+          ? `${String(parseInt(initialStartTime.split(':')[0], 10) + 1).padStart(2, '0')}:00`
+          : '10:00'
+      );
       setAllDay(false);
       setColor('#6366f1');
       setCategoryId('');
@@ -156,19 +158,19 @@ export const EventModal: React.FC<EventModalProps> = ({
     setErrors({});
   }, [event, isOpen, initialDate, initialStartTime]);
 
-  const toggleDayOfWeek = (day: number) => {
-    if (daysOfWeek.includes(day)) {
-      setDaysOfWeek(daysOfWeek.filter((d) => d !== day));
+  const toggleDayOfWeek = (dayVal: number) => {
+    if (daysOfWeek.includes(dayVal)) {
+      setDaysOfWeek(daysOfWeek.filter((d) => d !== dayVal));
     } else {
-      setDaysOfWeek([...daysOfWeek, day]);
+      setDaysOfWeek([...daysOfWeek, dayVal]);
     }
   };
 
-  const toggleReminder = (min: number) => {
-    if (reminders.includes(min)) {
-      setReminders(reminders.filter((r) => r !== min));
+  const toggleReminder = (minutes: number) => {
+    if (reminders.includes(minutes)) {
+      setReminders(reminders.filter((m) => m !== minutes));
     } else {
-      setReminders([...reminders, min]);
+      setReminders([...reminders, minutes]);
     }
   };
 
@@ -177,13 +179,13 @@ export const EventModal: React.FC<EventModalProps> = ({
     const newErrors: { [key: string]: string } = {};
 
     if (!title.trim()) {
-      newErrors.title = 'Vui lòng nhập tiêu đề sự kiện';
+      newErrors.title = 'Title is required';
     }
     if (!startDate) {
-      newErrors.startDate = 'Vui lòng chọn ngày bắt đầu';
+      newErrors.startDate = 'Start date is required';
     }
     if (!endDate) {
-      newErrors.endDate = 'Vui lòng chọn ngày kết thúc';
+      newErrors.endDate = 'End date is required';
     }
 
     let startIso: string;
@@ -198,7 +200,7 @@ export const EventModal: React.FC<EventModalProps> = ({
     }
 
     if (new Date(endIso).getTime() < new Date(startIso).getTime()) {
-      newErrors.endDate = 'Thời gian kết thúc không thể trước thời gian bắt đầu';
+      newErrors.endDate = 'End time must be after or equal to start time';
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -235,14 +237,14 @@ export const EventModal: React.FC<EventModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={event ? 'Chỉnh sửa sự kiện' : 'Tạo sự kiện mới'}
+      title={event ? t('calendar.modal.editTitle') : t('calendar.modal.createTitle')}
       maxWidth="lg"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Title */}
         <Input
-          label="Tiêu đề sự kiện *"
-          placeholder="Ví dụ: Họp Sprint Review, Lễ tốt nghiệp..."
+          label={`${t('calendar.modal.eventTitle')} *`}
+          placeholder={t('calendar.modal.eventTitlePlaceholder')}
           value={title}
           onChange={(e) => {
             setTitle(e.target.value);
@@ -255,7 +257,7 @@ export const EventModal: React.FC<EventModalProps> = ({
         {/* All-day switch */}
         <div className="flex items-center justify-between py-1 px-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
           <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-            Sự kiện cả ngày
+            {t('calendar.modal.isAllDay')}
           </span>
           <label className="relative inline-flex items-center cursor-pointer">
             <input
@@ -272,7 +274,7 @@ export const EventModal: React.FC<EventModalProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Bắt đầu *
+              {t('calendar.modal.start')} *
             </label>
             <div className="flex space-x-2">
               <input
@@ -297,7 +299,7 @@ export const EventModal: React.FC<EventModalProps> = ({
 
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Kết thúc *
+              {t('calendar.modal.end')} *
             </label>
             <div className="flex space-x-2">
               <input
@@ -321,26 +323,47 @@ export const EventModal: React.FC<EventModalProps> = ({
           </div>
         </div>
 
-        {/* Category & Color */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Color & Category */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center">
+              <Palette className="w-3.5 h-3.5 mr-1" />
+              {t('calendar.modal.color')}
+            </label>
+            <div className="flex items-center space-x-2">
+              <div className="flex space-x-1">
+                {PRESET_COLORS.slice(0, 6).map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setColor(c)}
+                    className={`w-6 h-6 rounded-full transition-transform ${
+                      color === c ? 'scale-125 ring-2 ring-indigo-500 ring-offset-2' : 'hover:scale-110'
+                    }`}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
+              <input
+                type="color"
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                className="w-8 h-8 rounded-lg cursor-pointer border-0 bg-transparent"
+              />
+            </div>
+          </div>
+
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center">
               <Tag className="w-3.5 h-3.5 mr-1" />
-              Danh mục
+              {t('calendar.modal.category')}
             </label>
             <select
               value={categoryId}
-              onChange={(e) => {
-                const catId = e.target.value;
-                setCategoryId(catId);
-                const selectedCat = categories.find((c) => c._id === catId);
-                if (selectedCat && selectedCat.color) {
-                  setColor(selectedCat.color);
-                }
-              }}
-              className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              onChange={(e) => setCategoryId(e.target.value)}
+              className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
             >
-              <option value="">Không có danh mục</option>
+              <option value="">{t('goals.modal.noCategory')}</option>
               {categories.map((c) => (
                 <option key={c._id} value={c._id}>
                   {c.name}
@@ -348,121 +371,48 @@ export const EventModal: React.FC<EventModalProps> = ({
               ))}
             </select>
           </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center">
-              <Palette className="w-3.5 h-3.5 mr-1" />
-              Màu sắc hiển thị
-            </label>
-            <div className="flex items-center space-x-2 pt-1">
-              {PRESET_COLORS.map((c) => (
-                <button
-                  type="button"
-                  key={c}
-                  onClick={() => setColor(c)}
-                  className={`w-6 h-6 rounded-full transition-transform ${
-                    color === c ? 'scale-125 ring-2 ring-offset-2 ring-indigo-500' : 'hover:scale-110'
-                  }`}
-                  style={{ backgroundColor: c }}
-                />
-              ))}
-            </div>
-          </div>
         </div>
 
         {/* Recurrence */}
-        <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl space-y-3 border border-slate-200 dark:border-slate-800">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center">
-              <Repeat className="w-3.5 h-3.5 mr-1" />
-              Lặp lại sự kiện
-            </span>
-            <select
-              value={recurrenceType}
-              onChange={(e) => setRecurrenceType(e.target.value as EventRecurrenceType)}
-              className="px-2 py-1 text-xs rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            >
-              <option value="none">Không lặp lại</option>
-              <option value="daily">Hàng ngày</option>
-              <option value="weekdays">Các ngày trong tuần (T2 - T6)</option>
-              <option value="weekly">Hàng tuần</option>
-              <option value="monthly">Hàng tháng</option>
-              <option value="yearly">Hàng năm</option>
-            </select>
+        <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2">
+          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center">
+            <Repeat className="w-3.5 h-3.5 mr-1 text-indigo-500" />
+            {t('calendar.modal.recurrence')}
+          </label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {(['none', 'daily', 'weekdays', 'weekly'] as EventRecurrenceType[]).map((rType) => (
+              <button
+                key={rType}
+                type="button"
+                onClick={() => setRecurrenceType(rType)}
+                className={`py-1 px-2 rounded-lg text-xs font-medium border text-center transition-all ${
+                  recurrenceType === rType
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                {t(`tasks.modal.recurrenceTypes.${rType}`)}
+              </button>
+            ))}
           </div>
 
-          {recurrenceType !== 'none' && (
-            <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-700 text-xs">
-              {/* Interval */}
-              <div className="flex items-center space-x-2">
-                <span className="text-slate-600 dark:text-slate-400">Lặp lại mỗi:</span>
-                <input
-                  type="number"
-                  min="1"
-                  max="100"
-                  value={interval}
-                  onChange={(e) => setInterval(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="w-16 px-2 py-1 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-center text-slate-900 dark:text-white"
-                />
-                <span className="text-slate-600 dark:text-slate-400">
-                  {recurrenceType === 'daily'
-                    ? 'ngày'
-                    : recurrenceType === 'weekly'
-                    ? 'tuần'
-                    : recurrenceType === 'monthly'
-                    ? 'tháng'
-                    : recurrenceType === 'yearly'
-                    ? 'năm'
-                    : 'kỳ'}
-                </span>
-              </div>
-
-              {/* Days of week for weekly */}
-              {recurrenceType === 'weekly' && (
-                <div>
-                  <span className="text-slate-600 dark:text-slate-400 block mb-1">
-                    Vào các ngày:
-                  </span>
-                  <div className="flex space-x-1.5">
-                    {WEEKDAY_OPTIONS.map((opt) => {
-                      const isSelected = daysOfWeek.includes(opt.value);
-                      return (
-                        <button
-                          type="button"
-                          key={opt.value}
-                          onClick={() => toggleDayOfWeek(opt.value)}
-                          className={`w-7 h-7 rounded-md font-semibold text-xs flex items-center justify-center transition-colors ${
-                            isSelected
-                              ? 'bg-indigo-600 text-white shadow-sm'
-                              : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 hover:bg-slate-100'
-                          }`}
-                        >
-                          {opt.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Recurrence End Date */}
-              <div className="flex items-center space-x-2 pt-1">
-                <span className="text-slate-600 dark:text-slate-400">Kết thúc lặp:</span>
-                <input
-                  type="date"
-                  value={recurrenceEndDate}
-                  onChange={(e) => setRecurrenceEndDate(e.target.value)}
-                  className="px-2 py-1 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                />
-                {recurrenceEndDate && (
+          {recurrenceType === 'weekly' && (
+            <div className="pt-2">
+              <div className="flex space-x-1">
+                {WEEKDAY_OPTIONS.map((d) => (
                   <button
+                    key={d.value}
                     type="button"
-                    onClick={() => setRecurrenceEndDate('')}
-                    className="text-slate-400 hover:text-slate-600 text-xs"
+                    onClick={() => toggleDayOfWeek(d.value)}
+                    className={`w-7 h-7 rounded-full text-xs font-bold transition-colors ${
+                      daysOfWeek.includes(d.value)
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
+                    }`}
                   >
-                    Bỏ giới hạn
+                    {d.label}
                   </button>
-                )}
+                ))}
               </div>
             </div>
           )}
@@ -471,8 +421,8 @@ export const EventModal: React.FC<EventModalProps> = ({
         {/* Reminders */}
         <div>
           <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center">
-            <Bell className="w-3.5 h-3.5 mr-1" />
-            Nhắc nhở
+            <Bell className="w-3.5 h-3.5 mr-1 text-slate-400" />
+            {t('calendar.modal.reminders')}
           </label>
           <div className="flex flex-wrap gap-1.5">
             {REMINDER_OPTIONS.map((opt) => {
@@ -498,14 +448,14 @@ export const EventModal: React.FC<EventModalProps> = ({
         {/* Description */}
         <div>
           <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center">
-            <AlignLeft className="w-3.5 h-3.5 mr-1" />
-            Mô tả
+            <AlignLeft className="w-3.5 h-3.5 mr-1 text-slate-400" />
+            {t('goals.modal.description')}
           </label>
           <textarea
-            rows={3}
+            rows={2}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Thêm ghi chú, đường dẫn cuộc họp hoặc chi tiết..."
+            placeholder={t('calendar.modal.description')}
             className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
           />
         </div>
@@ -513,10 +463,10 @@ export const EventModal: React.FC<EventModalProps> = ({
         {/* Actions */}
         <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100 dark:border-slate-800">
           <Button type="button" variant="ghost" onClick={onClose}>
-            Hủy
+            {t('common.cancel')}
           </Button>
           <Button type="submit" variant="primary" isLoading={isLoading}>
-            {event ? 'Lưu thay đổi' : 'Tạo sự kiện'}
+            {event ? t('common.save') : t('calendar.addEvent')}
           </Button>
         </div>
       </form>

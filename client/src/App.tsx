@@ -7,11 +7,12 @@ import { DashboardPage } from './pages/DashboardPage';
 import { TasksPage } from './pages/TasksPage';
 import { GoalsPage } from './pages/GoalsPage';
 import { CalendarPage } from './pages/CalendarPage';
-import { InsightsPlaceholderPage } from './pages/InsightsPlaceholderPage';
+import { InsightsPage } from './pages/InsightsPage';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 import { PublicRoute } from './components/common/PublicRoute';
 import { AppLayout } from './components/layout/AppLayout';
 import { useAuthStore } from './store/useAuthStore';
+import { useI18n } from './i18n';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -29,6 +30,14 @@ export const App: React.FC = () => {
     // Run authentication initialization and session synchronization on app mount
     useAuthStore.getState().initializeAuth();
   }, []);
+
+  useEffect(() => {
+    // Synchronize language setting from user profile if not customized in localStorage
+    const savedLang = localStorage.getItem('goalcalendar_language');
+    if (!savedLang && user?.settings?.language) {
+      useI18n.getState().setLanguage(user.settings.language as 'vi' | 'en');
+    }
+  }, [user?.settings?.language]);
 
   useEffect(() => {
     // Apply user theme preference (light, dark, or system)
@@ -71,7 +80,7 @@ export const App: React.FC = () => {
               <Route path="/goals" element={<GoalsPage />} />
               <Route path="/tasks" element={<TasksPage />} />
               <Route path="/calendar" element={<CalendarPage />} />
-              <Route path="/insights" element={<InsightsPlaceholderPage />} />
+              <Route path="/insights" element={<InsightsPage />} />
             </Route>
           </Route>
 

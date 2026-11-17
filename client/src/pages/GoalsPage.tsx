@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Target,
   Plus,
@@ -7,6 +8,7 @@ import {
   CalendarDays,
   CalendarRange,
   Sparkles,
+  Download,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { goalService } from '../services/goal.service';
@@ -19,7 +21,11 @@ import { GoalTreeView } from '../components/goals/GoalTreeView';
 import { GoalModal } from '../components/goals/GoalModal';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { Button } from '../components/ui/Button';
+import { CardSkeleton, Skeleton } from '../components/ui/Skeleton';
+import { EmptyState } from '../components/ui/EmptyState';
+import { ExportModal } from '../components/common/ExportModal';
 import { toast } from '../store/useToastStore';
+import { useI18n } from '../i18n';
 import {
   getStartAndEndOfWeek,
   getStartAndEndOfMonth,
@@ -32,12 +38,16 @@ type GoalViewMode = 'tree' | 'cards';
 type GoalFilterTab = 'all' | 'year' | 'quarter' | 'month' | 'week' | 'custom' | 'completed';
 
 export const GoalsPage: React.FC = () => {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const [viewMode, setViewMode] = useState<GoalViewMode>('cards');
   const [activeTab, setActiveTab] = useState<GoalFilterTab>('all');
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [deletingGoal, setDeletingGoal] = useState<Goal | null>(null);
 
@@ -45,6 +55,18 @@ export const GoalsPage: React.FC = () => {
   const [presetType, setPresetType] = useState<GoalType | undefined>(undefined);
   const [presetStart, setPresetStart] = useState<string | undefined>(undefined);
   const [presetEnd, setPresetEnd] = useState<string | undefined>(undefined);
+
+  // Check for ?create=true
+  useEffect(() => {
+    if (searchParams.get('create') === 'true') {
+      setEditingGoal(null);
+      setPresetType(undefined);
+      setPresetStart(undefined);
+      setPresetEnd(undefined);
+      setIsModalOpen(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // Fetch Goals
   const { data: goals = [], isLoading: isGoalsLoading } = useQuery({
@@ -72,11 +94,11 @@ export const GoalsPage: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['goals'] });
       queryClient.invalidateQueries({ queryKey: ['goalTree'] });
-      toast.success('Mục tiêu mới đã được thiết lập!');
+      toast.success(t('common.success'));
       setIsModalOpen(false);
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.error?.message || 'Không thể tạo mục tiêu');
+      toast.error(err.response?.data?.error?.message || t('common.error'));
     },
   });
 
@@ -87,12 +109,12 @@ export const GoalsPage: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['goals'] });
       queryClient.invalidateQueries({ queryKey: ['goalTree'] });
-      toast.success('Đã cập nhật mục tiêu!');
+      toast.success(t('common.success'));
       setIsModalOpen(false);
       setEditingGoal(null);
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.error?.message || 'Không thể cập nhật mục tiêu');
+      toast.error(err.response?.data?.error?.message || t('common.error'));
     },
   });
 
@@ -103,15 +125,15 @@ export const GoalsPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['goals'] });
       queryClient.invalidateQueries({ queryKey: ['goalTree'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      toast.success('Đã xóa mục tiêu thành công');
+      toast.success(t('common.success'));
       setDeletingGoal(null);
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.error?.message || 'Không thể xóa mục tiêu');
+      toast.error(err.response?.data?.error?.message || t('common.error'));
     },
   });
 
-  // Update Numeric Progress (Instant stepper / direct edit)
+  // Update Numeric Progress
   const updateNumericProgressMutation = useMutation({
     mutationFn: ({ id, value }: { id: string; value: number }) =>
       goalService.updateGoalProgress(id, value),
@@ -139,7 +161,7 @@ export const GoalsPage: React.FC = () => {
       if (context?.previousGoals) {
         queryClient.setQueryData(['goals'], context.previousGoals);
       }
-      toast.error('Không thể cập nhật tiến độ số');
+      toast.error(t('common.error'));
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['goals'] });
@@ -149,83 +171,80 @@ export const GoalsPage: React.FC = () => {
 
   // Toggle Task Completion from inside tree view
   const toggleTaskMutation = useMutation({
-    mutationFn: async (task: Task) => {
-      const isRecurring = task.recurrence && task.recurrence.type !== 'none';
-      if (isRecurring) {
-        const todayStr = getTodayLocalDateString();
-        if (task.isCompletedToday) {
-          return taskService.uncompleteRecurring(task._id, todayStr);
-        } else {
-          return taskService.completeRecurring(task._id, todayStr);
-        }
-      }
-      return taskService.toggleTask(task._id);
-    },
+    mutationFn: (task: Task) => taskService.toggleTask(task._id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['goalTree'] });
       queryClient.invalidateQueries({ queryKey: ['goals'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      toast.success('Đã cập nhật tiến độ công việc!');
     },
   });
 
-  // Quick Action: Dời mục tiêu sang kỳ kế tiếp (Postpone / Defer)
-  const handlePostpone = async (goal: Goal) => {
-    const { nextStart, nextEnd } = getNextPeriodDates(
-      goal.type,
-      goal.startDate,
-      goal.endDate
-    );
-
-    try {
-      await updateGoalMutation.mutateAsync({
-        id: goal._id,
-        data: {
-          startDate: nextStart.toISOString(),
-          endDate: nextEnd.toISOString(),
-        },
-      });
-      toast.success(`Đã dời mục tiêu "${goal.title}" sang kỳ tiếp theo!`);
-    } catch {
-      // handled in mutation onError
-    }
-  };
-
-  // Quick Preset Actions
+  // Quick Action Handlers
   const handleCreateThisWeek = () => {
-    const { startStr, endStr } = getStartAndEndOfWeek();
+    const today = new Date();
+    const { start, end } = getStartAndEndOfWeek(today);
     setEditingGoal(null);
     setPresetType('week');
-    setPresetStart(startStr);
-    setPresetEnd(endStr);
+    setPresetStart(start.toISOString().split('T')[0]);
+    setPresetEnd(end.toISOString().split('T')[0]);
     setIsModalOpen(true);
   };
 
   const handleCreateThisMonth = () => {
-    const { startStr, endStr } = getStartAndEndOfMonth();
+    const today = new Date();
+    const { start, end } = getStartAndEndOfMonth(today);
     setEditingGoal(null);
     setPresetType('month');
-    setPresetStart(startStr);
-    setPresetEnd(endStr);
+    setPresetStart(start.toISOString().split('T')[0]);
+    setPresetEnd(end.toISOString().split('T')[0]);
     setIsModalOpen(true);
   };
 
   const handleCreateThisYear = () => {
-    const { startStr, endStr } = getStartAndEndOfYear();
+    const today = new Date();
+    const { start, end } = getStartAndEndOfYear(today);
     setEditingGoal(null);
     setPresetType('year');
-    setPresetStart(startStr);
-    setPresetEnd(endStr);
+    setPresetStart(start.toISOString().split('T')[0]);
+    setPresetEnd(end.toISOString().split('T')[0]);
     setIsModalOpen(true);
   };
 
-  // Filtered Goals for Cards view
+  // Roll to Next Period Handler
+  const handleRollToNextPeriod = async (g: Goal) => {
+    try {
+      const nextDates = getNextPeriodDates(g.type, new Date(g.endDate));
+      const nextGoalData: CreateGoalInput = {
+        title: `${g.title} (Kỳ tiếp theo)`,
+        description: g.description,
+        type: g.type,
+        startDate: nextDates.start.toISOString(),
+        endDate: nextDates.end.toISOString(),
+        parentId: g.parentId,
+        categoryId: g.categoryId,
+        color: g.color,
+        priority: g.priority,
+        progressMode: g.progressMode,
+        targetValue: g.targetValue,
+        currentValue: 0,
+        unit: g.unit,
+        weight: g.weight,
+      };
+
+      await createGoalMutation.mutateAsync(nextGoalData);
+      toast.success('Đã chuyển tiếp mục tiêu sang kỳ tiếp theo!');
+    } catch {
+      toast.error('Không thể chuyển tiếp mục tiêu');
+    }
+  };
+
+  // Filtered Goals based on Tab
   const filteredGoals = useMemo(() => {
     return goals.filter((g) => {
-      if (activeTab === 'completed') {
-        return g.progressCache >= 100 || g.status === 'completed';
-      }
       if (activeTab === 'all') return true;
+      if (activeTab === 'completed') {
+        return g.status === 'completed' || (g.progressCache ?? 0) >= 100;
+      }
       return g.type === activeTab;
     });
   }, [goals, activeTab]);
@@ -237,10 +256,10 @@ export const GoalsPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white flex items-center space-x-2">
             <Target className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-            <span>Hệ thống Mục tiêu (Goals)</span>
+            <span>{t('goals.title')}</span>
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Thiết lập tầm nhìn dài hạn và phân rã thành các kỳ Năm, Quý, Tháng, Tuần
+            {t('goals.subtitle')}
           </p>
         </div>
 
@@ -253,7 +272,7 @@ export const GoalsPage: React.FC = () => {
             className="text-xs bg-white dark:bg-slate-900 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50"
           >
             <CalendarDays className="w-3.5 h-3.5 mr-1 text-indigo-500" />
-            Mục tiêu tuần này
+            {t('goals.quickWeek')}
           </Button>
 
           <Button
@@ -263,7 +282,7 @@ export const GoalsPage: React.FC = () => {
             className="text-xs bg-white dark:bg-slate-900 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50"
           >
             <CalendarRange className="w-3.5 h-3.5 mr-1 text-indigo-500" />
-            Mục tiêu tháng này
+            {t('goals.quickMonth')}
           </Button>
 
           <Button
@@ -273,10 +292,21 @@ export const GoalsPage: React.FC = () => {
             className="text-xs bg-white dark:bg-slate-900 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50"
           >
             <Sparkles className="w-3.5 h-3.5 mr-1 text-amber-500" />
-            Mục tiêu năm nay
+            {t('goals.quickYear')}
           </Button>
 
           <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsExportModalOpen(true)}
+            className="text-xs"
+          >
+            <Download className="w-3.5 h-3.5 mr-1" />
+            {t('header.exportData')}
+          </Button>
+
+          <Button
+            size="sm"
             onClick={() => {
               setEditingGoal(null);
               setPresetType(undefined);
@@ -284,10 +314,10 @@ export const GoalsPage: React.FC = () => {
               setPresetEnd(undefined);
               setIsModalOpen(true);
             }}
-            className="shadow-sm"
+            className="shadow-sm text-xs"
           >
             <Plus className="w-4 h-4 mr-1.5" />
-            Tạo mục tiêu mới
+            {t('goals.addGoal')}
           </Button>
         </div>
       </div>
@@ -298,18 +328,18 @@ export const GoalsPage: React.FC = () => {
         {viewMode === 'cards' ? (
           <div className="flex items-center space-x-1 overflow-x-auto pb-1 sm:pb-0">
             {[
-              { id: 'all', label: 'Tất cả' },
-              { id: 'year', label: 'Năm' },
-              { id: 'quarter', label: 'Quý' },
-              { id: 'month', label: 'Tháng' },
-              { id: 'week', label: 'Tuần' },
-              { id: 'custom', label: 'Dài hạn' },
-              { id: 'completed', label: 'Đã hoàn thành' },
+              { id: 'all', label: t('goals.tabs.all') },
+              { id: 'year', label: t('goals.tabs.year') },
+              { id: 'quarter', label: t('goals.tabs.quarter') },
+              { id: 'month', label: t('goals.tabs.month') },
+              { id: 'week', label: t('goals.tabs.week') },
+              { id: 'custom', label: t('goals.tabs.custom') },
+              { id: 'completed', label: t('goals.tabs.completed') },
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as GoalFilterTab)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
                   activeTab === tab.id
                     ? 'bg-indigo-600 text-white shadow-sm'
                     : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -330,25 +360,25 @@ export const GoalsPage: React.FC = () => {
         <div className="inline-flex rounded-xl border border-slate-200 dark:border-slate-700 p-0.5 bg-white dark:bg-slate-900 self-end sm:self-auto">
           <button
             onClick={() => setViewMode('cards')}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
               viewMode === 'cards'
                 ? 'bg-indigo-600 text-white shadow-sm'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <LayoutGrid className="w-3.5 h-3.5" />
-            <span>Dạng thẻ</span>
+            <span>{t('goals.viewCards')}</span>
           </button>
           <button
             onClick={() => setViewMode('tree')}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
               viewMode === 'tree'
                 ? 'bg-indigo-600 text-white shadow-sm'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <GitFork className="w-3.5 h-3.5" />
-            <span>Cây mục tiêu (Tree)</span>
+            <span>{t('goals.viewTree')}</span>
           </button>
         </div>
       </div>
@@ -358,82 +388,63 @@ export const GoalsPage: React.FC = () => {
         isTreeLoading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((n) => (
-              <div
-                key={n}
-                className="h-16 bg-slate-100 dark:bg-slate-800 rounded-xl animate-pulse"
-              />
+              <Skeleton key={n} className="h-28 w-full rounded-2xl" />
             ))}
           </div>
         ) : (
           <GoalTreeView
             tree={goalTree}
+            categories={categories}
             onEditGoal={(g) => {
               setEditingGoal(g);
               setIsModalOpen(true);
             }}
             onDeleteGoal={(g) => setDeletingGoal(g)}
-            onAddChildGoal={(parent) => {
-              setEditingGoal(null);
-              setPresetType(
-                parent.type === 'year'
-                  ? 'quarter'
-                  : parent.type === 'quarter'
-                  ? 'month'
-                  : 'week'
-              );
-              setPresetStart(parent.startDate.split('T')[0]);
-              setPresetEnd(parent.endDate.split('T')[0]);
-              setIsModalOpen(true);
-            }}
-            onToggleTask={(task) => toggleTaskMutation.mutate(task)}
-            onUpdateNumericProgress={(g, val) =>
-              updateNumericProgressMutation.mutate({ id: g._id, value: val })
+            onUpdateProgress={(id, val) =>
+              updateNumericProgressMutation.mutate({ id, value: val })
             }
+            onToggleTask={(task) => toggleTaskMutation.mutate(task)}
           />
         )
       ) : isGoalsLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {[1, 2, 3].map((n) => (
-            <div
-              key={n}
-              className="h-48 bg-slate-100 dark:bg-slate-800 rounded-2xl animate-pulse"
-            />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((n) => (
+            <CardSkeleton key={n} rows={4} />
           ))}
         </div>
       ) : filteredGoals.length === 0 ? (
-        <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-8 space-y-3">
-          <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
-            <Target className="w-6 h-6" />
-          </div>
-          <h4 className="text-base font-bold text-slate-800 dark:text-white">
-            Không tìm thấy mục tiêu nào
-          </h4>
-          <p className="text-sm text-slate-500 max-w-sm mx-auto">
-            Hãy bắt đầu tạo mục tiêu đầu tiên hoặc sử dụng các nút hành động nhanh phía trên.
-          </p>
-        </div>
+        <EmptyState
+          icon={Target}
+          title={t('goals.emptyTitle')}
+          description={t('goals.emptyDesc')}
+          actionLabel={t('goals.createFirstGoal')}
+          onAction={() => {
+            setEditingGoal(null);
+            setIsModalOpen(true);
+          }}
+        />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredGoals.map((goal) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredGoals.map((g) => (
             <GoalCard
-              key={goal._id}
-              goal={goal}
+              key={g._id}
+              goal={g}
               categories={categories}
-              onEdit={(g) => {
-                setEditingGoal(g);
+              onEdit={(goal) => {
+                setEditingGoal(goal);
                 setIsModalOpen(true);
               }}
-              onDelete={(g) => setDeletingGoal(g)}
-              onPostpone={handlePostpone}
-              onUpdateNumericProgress={(g, val) =>
-                updateNumericProgressMutation.mutate({ id: g._id, value: val })
+              onDelete={(goal) => setDeletingGoal(goal)}
+              onUpdateProgress={(id, val) =>
+                updateNumericProgressMutation.mutate({ id, value: val })
               }
+              onRollToNextPeriod={handleRollToNextPeriod}
             />
           ))}
         </div>
       )}
 
-      {/* Goal Modal */}
+      {/* Create / Edit Goal Modal */}
       <GoalModal
         isOpen={isModalOpen}
         onClose={() => {
@@ -442,10 +453,7 @@ export const GoalsPage: React.FC = () => {
         }}
         onSubmit={async (data) => {
           if (editingGoal) {
-            await updateGoalMutation.mutateAsync({
-              id: editingGoal._id,
-              data,
-            });
+            await updateGoalMutation.mutateAsync({ id: editingGoal._id, data });
           } else {
             await createGoalMutation.mutateAsync(data);
           }
@@ -459,19 +467,28 @@ export const GoalsPage: React.FC = () => {
         isLoading={createGoalMutation.isPending || updateGoalMutation.isPending}
       />
 
-      {/* Delete Confirm Modal */}
+      {/* Delete Confirmation Modal */}
       <ConfirmModal
         isOpen={!!deletingGoal}
         onClose={() => setDeletingGoal(null)}
-        onConfirm={() => {
+        onConfirm={async () => {
           if (deletingGoal) {
-            deleteGoalMutation.mutate(deletingGoal._id);
+            await deleteGoalMutation.mutateAsync(deletingGoal._id);
           }
         }}
-        title="Xác nhận xóa Mục tiêu"
-        message={`Bạn có chắc muốn xóa mục tiêu "${deletingGoal?.title}"? Các công việc và mục tiêu con trực thuộc sẽ được tách độc lập.`}
-        confirmLabel="Xóa mục tiêu"
+        title={t('common.confirmDeleteTitle')}
+        description={`${t('common.confirmDeleteDesc')} ("${deletingGoal?.title}")`}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
+        variant="danger"
         isLoading={deleteGoalMutation.isPending}
+      />
+
+      {/* Export Modal */}
+      <ExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        defaultType="goals"
       />
     </div>
   );

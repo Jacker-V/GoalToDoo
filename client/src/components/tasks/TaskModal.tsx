@@ -6,6 +6,7 @@ import { Input } from '../ui/Input';
 import { getItemDateStr } from '../../utils/calendar';
 import type { Task, CreateTaskInput, Subtask, Priority, RecurrenceType } from '../../types/task';
 import type { Goal } from '../../types/goal';
+import { useI18n } from '../../i18n';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   initialDueDate,
   isLoading = false,
 }) => {
+  const { t, language } = useI18n();
   const [title, setTitle] = useState('');
   const [notes, setNotes] = useState('');
   const [dueDate, setDueDate] = useState('');
@@ -107,22 +109,22 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
-      setErrors({ title: 'Tiêu đề không được để trống' });
+      setErrors({ title: 'Task title is required' });
       return;
     }
 
     const payload: CreateTaskInput = {
       title: title.trim(),
       notes: notes.trim(),
-      dueDate: dueDate ? new Date(`${dueDate}T00:00:00.000Z`).toISOString() : null,
-      dueTime: dueTime ? dueTime.trim() : null,
       priority,
       goalId: goalId || null,
+      dueDate: dueDate ? new Date(dueDate).toISOString() : null,
+      dueTime: dueTime.trim() || null,
       tags,
       subtasks,
       recurrence: {
         type: recurrenceType,
-        interval: recurrenceType === 'none' ? 1 : interval,
+        interval,
         daysOfWeek: recurrenceType === 'weekly' ? daysOfWeek : [],
       },
     };
@@ -131,27 +133,27 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   };
 
   const weekDayLabels = [
-    { label: 'CN', val: 0 },
-    { label: 'T2', val: 1 },
-    { label: 'T3', val: 2 },
-    { label: 'T4', val: 3 },
-    { label: 'T5', val: 4 },
-    { label: 'T6', val: 5 },
-    { label: 'T7', val: 6 },
+    { label: language === 'vi' ? 'T2' : 'M', val: 1 },
+    { label: language === 'vi' ? 'T3' : 'Tu', val: 2 },
+    { label: language === 'vi' ? 'T4' : 'W', val: 3 },
+    { label: language === 'vi' ? 'T5' : 'Th', val: 4 },
+    { label: language === 'vi' ? 'T6' : 'F', val: 5 },
+    { label: language === 'vi' ? 'T7' : 'Sa', val: 6 },
+    { label: language === 'vi' ? 'CN' : 'Su', val: 0 },
   ];
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={task ? 'Chỉnh sửa Công việc' : 'Tạo mới Công việc'}
-      maxWidth="xl"
+      title={task ? t('tasks.modal.editTitle') : t('tasks.modal.createTitle')}
+      size="md"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Title */}
         <Input
-          label="Tiêu đề công việc *"
-          placeholder="Nhập tên việc cần làm..."
+          label={`${t('tasks.modal.taskTitle')} *`}
+          placeholder={t('tasks.modal.taskTitlePlaceholder')}
           value={title}
           onChange={(e) => {
             setTitle(e.target.value);
@@ -164,13 +166,13 @@ export const TaskModal: React.FC<TaskModalProps> = ({
         {/* Notes */}
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-            Ghi chú / Mô tả
+            {t('tasks.modal.notes')}
           </label>
           <textarea
             rows={2}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Chi tiết công việc..."
+            placeholder={t('tasks.modal.notesPlaceholder')}
             className="w-full px-3.5 py-2.5 rounded-lg border text-sm transition-colors bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 border-slate-300 dark:border-slate-700"
           />
         </div>
@@ -180,7 +182,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
           <div className="space-y-1.5">
             <label className="flex items-center text-sm font-medium text-slate-700 dark:text-slate-300">
               <Calendar className="w-4 h-4 mr-1 text-slate-400" />
-              Hạn ngày (Due Date)
+              {t('tasks.modal.dueDate')}
             </label>
             <input
               type="date"
@@ -193,7 +195,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
           <div className="space-y-1.5">
             <label className="flex items-center text-sm font-medium text-slate-700 dark:text-slate-300">
               <Clock className="w-4 h-4 mr-1 text-slate-400" />
-              Giờ hoàn thành (Due Time)
+              {t('tasks.modal.dueTime')}
             </label>
             <input
               type="time"
@@ -205,16 +207,16 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-              Độ ưu tiên
+              {t('tasks.modal.priority')}
             </label>
             <select
               value={priority}
               onChange={(e) => setPriority(e.target.value as Priority)}
               className="w-full px-3 py-2 rounded-lg border text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
-              <option value="low">Thấp (Low)</option>
-              <option value="medium">Trung bình (Medium)</option>
-              <option value="high">Cao (High)</option>
+              <option value="low">{t('common.priority.low')}</option>
+              <option value="medium">{t('common.priority.medium')}</option>
+              <option value="high">{t('common.priority.high')}</option>
             </select>
           </div>
         </div>
@@ -223,14 +225,14 @@ export const TaskModal: React.FC<TaskModalProps> = ({
         <div className="space-y-1.5">
           <label className="flex items-center text-sm font-medium text-slate-700 dark:text-slate-300">
             <Target className="w-4 h-4 mr-1 text-indigo-500" />
-            Thuộc Mục tiêu (Goal)
+            {t('tasks.modal.linkGoal')}
           </label>
           <select
             value={goalId}
             onChange={(e) => setGoalId(e.target.value)}
             className="w-full px-3 py-2 rounded-lg border text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
-            <option value="">-- Không thuộc mục tiêu nào --</option>
+            <option value="">{t('tasks.modal.noGoal')}</option>
             {goals.map((g) => (
               <option key={g._id} value={g._id}>
                 [{g.type.toUpperCase()}] {g.title} ({g.progressCache}%)
@@ -243,13 +245,13 @@ export const TaskModal: React.FC<TaskModalProps> = ({
         <div className="space-y-2 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700/60">
           <label className="flex items-center text-sm font-semibold text-slate-800 dark:text-slate-200">
             <ListChecks className="w-4 h-4 mr-1.5 text-indigo-500" />
-            Danh sách việc con (Subtasks)
+            {t('tasks.modal.subtasks')}
           </label>
 
           <div className="flex space-x-2">
             <input
               type="text"
-              placeholder="Thêm checklist con..."
+              placeholder={t('tasks.modal.subtaskPlaceholder')}
               value={subtaskTitle}
               onChange={(e) => setSubtaskTitle(e.target.value)}
               onKeyDown={(e) => {
@@ -268,7 +270,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               disabled={!subtaskTitle.trim()}
             >
               <Plus className="w-3.5 h-3.5 mr-1" />
-              Thêm
+              {t('tasks.modal.addSubtask')}
             </Button>
           </div>
 
@@ -299,7 +301,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
         <div className="space-y-2 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700/60">
           <label className="flex items-center text-sm font-semibold text-slate-800 dark:text-slate-200">
             <Repeat className="w-4 h-4 mr-1.5 text-purple-500" />
-            Lặp lại (Recurring Habit)
+            {t('tasks.modal.recurrence')}
           </label>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -314,17 +316,16 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                     : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
                 }`}
               >
-                {rType === 'none' && 'Không lặp'}
-                {rType === 'daily' && 'Mỗi ngày'}
-                {rType === 'weekdays' && 'T2 - T6'}
-                {rType === 'weekly' && 'Hàng tuần'}
+                {t(`tasks.modal.recurrenceTypes.${rType}`)}
               </button>
             ))}
           </div>
 
           {recurrenceType === 'weekly' && (
             <div className="pt-2">
-              <span className="text-xs text-slate-500 block mb-1">Chọn các ngày trong tuần:</span>
+              <span className="text-xs text-slate-500 block mb-1">
+                {language === 'vi' ? 'Chọn các ngày trong tuần:' : 'Select days of week:'}
+              </span>
               <div className="flex space-x-1">
                 {weekDayLabels.map((d) => (
                   <button
@@ -349,11 +350,11 @@ export const TaskModal: React.FC<TaskModalProps> = ({
         <div className="space-y-1.5">
           <label className="flex items-center text-sm font-medium text-slate-700 dark:text-slate-300">
             <Tag className="w-4 h-4 mr-1 text-slate-400" />
-            Thẻ (Tags)
+            {t('tasks.modal.tags')}
           </label>
           <input
             type="text"
-            placeholder="Nhập tag rồi nhấn Enter hoặc dấu phẩy..."
+            placeholder={t('tasks.modal.tagsPlaceholder')}
             value={tagInput}
             onChange={(e) => setTagInput(e.target.value)}
             onKeyDown={handleAddTag}
@@ -362,12 +363,12 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
           {tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5 pt-1">
-              {tags.map((t, idx) => (
+              {tags.map((tg, idx) => (
                 <span
                   key={idx}
                   className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
                 >
-                  #{t}
+                  #{tg}
                   <button
                     type="button"
                     onClick={() => handleRemoveTag(idx)}
@@ -384,10 +385,10 @@ export const TaskModal: React.FC<TaskModalProps> = ({
         {/* Footer actions */}
         <div className="flex justify-end space-x-3 pt-4 border-t border-slate-100 dark:border-slate-800">
           <Button variant="outline" type="button" onClick={onClose} disabled={isLoading}>
-            Hủy
+            {t('common.cancel')}
           </Button>
           <Button variant="primary" type="submit" isLoading={isLoading}>
-            {task ? 'Lưu thay đổi' : 'Tạo công việc'}
+            {task ? t('common.save') : t('tasks.addTask')}
           </Button>
         </div>
       </form>

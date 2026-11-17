@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { calendarService } from '../services/calendar.service';
 import { eventService } from '../services/event.service';
@@ -17,19 +18,22 @@ import {
   type CalendarSelectedItem,
 } from '../components/calendar/CalendarItemDetailModal';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
+import { Skeleton } from '../components/ui/Skeleton';
 import { toast } from '../store/useToastStore';
+import { useI18n } from '../i18n';
 import type { CalendarViewMode, CalendarFilterState } from '../types/calendar';
 import type { CalendarEvent, CreateEventInput } from '../types/event';
 import type { Task, CreateTaskInput } from '../types/task';
 import {
   getMonthDays,
   getWeekDays,
-  formatTimeHHmm,
 } from '../utils/calendar';
 import { formatLocalDate } from '../utils/date';
 
 export const CalendarPage: React.FC = () => {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Navigation & View State
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
@@ -57,6 +61,24 @@ export const CalendarPage: React.FC = () => {
 
   const [quickAddDate, setQuickAddDate] = useState<string>('');
   const [quickAddTime, setQuickAddTime] = useState<string>('');
+
+  // Shortcut T: Jump to today
+  useEffect(() => {
+    const handleJumpToday = () => {
+      setCurrentDate(new Date());
+    };
+    window.addEventListener('gc-jump-today', handleJumpToday);
+    return () => window.removeEventListener('gc-jump-today', handleJumpToday);
+  }, []);
+
+  // Shortcut N (if routed here with create=true)
+  useEffect(() => {
+    if (searchParams.get('create') === 'true') {
+      setEditingEvent(null);
+      setIsEventModalOpen(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // 1. Compute dynamic date window [fromStr, toStr] based on viewMode and currentDate
   const { fromStr, toStr, monthDays, weekDays } = useMemo(() => {
@@ -123,10 +145,10 @@ export const CalendarPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['calendar'] });
       setIsEventModalOpen(false);
       setEditingEvent(null);
-      toast.success('Đã tạo sự kiện thành công');
+      toast.success(t('common.success'));
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Không thể tạo sự kiện');
+      toast.error(err.response?.data?.message || t('common.error'));
     },
   });
 
@@ -137,10 +159,10 @@ export const CalendarPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['calendar'] });
       setIsEventModalOpen(false);
       setEditingEvent(null);
-      toast.success('Đã cập nhật sự kiện');
+      toast.success(t('common.success'));
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Không thể cập nhật sự kiện');
+      toast.error(err.response?.data?.message || t('common.error'));
     },
   });
 
@@ -149,54 +171,41 @@ export const CalendarPage: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['calendar'] });
       setDeletingEvent(null);
-      toast.success('Đã xóa sự kiện');
+      setSelectedDetailItem(null);
+      toast.success(t('common.success'));
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Không thể xóa sự kiện');
+      toast.error(err.response?.data?.message || t('common.error'));
     },
   });
 
-  // Task Mutations
+  // Task Mutations (From Calendar)
   const createTaskMutation = useMutation({
     mutationFn: (data: CreateTaskInput) => taskService.createTask(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['calendar'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['goals'] });
       setIsTaskModalOpen(false);
       setEditingTask(null);
-      toast.success('Đã tạo công việc thành công');
+      toast.success(t('common.success'));
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Không thể tạo công việc');
+      toast.error(err.response?.data?.message || t('common.error'));
     },
   });
 
   const updateTaskMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) =>
+    mutationFn: ({ id, data }: { id: string; data: Partial<CreateTaskInput> }) =>
       taskService.updateTask(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['calendar'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['goals'] });
       setIsTaskModalOpen(false);
       setEditingTask(null);
-      toast.success('Đã cập nhật công việc');
+      toast.success(t('common.success'));
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Không thể cập nhật công việc');
-    },
-  });
-
-  const toggleTaskMutation = useMutation({
-    mutationFn: (id: string) => taskService.toggleTask(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['calendar'] });
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['goals'] });
-    },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Không thể cập nhật trạng thái');
+      toast.error(err.response?.data?.message || t('common.error'));
     },
   });
 
@@ -205,18 +214,59 @@ export const CalendarPage: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['calendar'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['goals'] });
       setDeletingTask(null);
-      toast.success('Đã xóa công việc');
+      setSelectedDetailItem(null);
+      toast.success(t('common.success'));
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Không thể xóa công việc');
+      toast.error(err.response?.data?.message || t('common.error'));
     },
   });
 
-  // --- HANDLERS ---
+  const toggleTaskMutation = useMutation({
+    mutationFn: (taskId: string) => taskService.toggleTask(taskId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['calendar'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || t('common.error'));
+    },
+  });
 
-  // Quick Add from Day / Time slot click
+  // Action Handlers
+  const handlePrev = () => {
+    const next = new Date(currentDate);
+    if (viewMode === 'month') {
+      next.setMonth(next.getMonth() - 1);
+    } else if (viewMode === 'week') {
+      next.setDate(next.getDate() - 7);
+    } else if (viewMode === 'day') {
+      next.setDate(next.getDate() - 1);
+    } else {
+      next.setDate(next.getDate() - 14);
+    }
+    setCurrentDate(next);
+  };
+
+  const handleNext = () => {
+    const next = new Date(currentDate);
+    if (viewMode === 'month') {
+      next.setMonth(next.getMonth() + 1);
+    } else if (viewMode === 'week') {
+      next.setDate(next.getDate() + 7);
+    } else if (viewMode === 'day') {
+      next.setDate(next.getDate() + 1);
+    } else {
+      next.setDate(next.getDate() + 14);
+    }
+    setCurrentDate(next);
+  };
+
+  const handleToday = () => {
+    setCurrentDate(new Date());
+  };
+
   const handleQuickAdd = (dateStr: string, timeStr?: string) => {
     setQuickAddDate(dateStr);
     setQuickAddTime(timeStr || '09:00');
@@ -224,181 +274,174 @@ export const CalendarPage: React.FC = () => {
     setIsEventModalOpen(true);
   };
 
-  const handleOpenCreateEvent = () => {
-    setQuickAddDate(formatLocalDate(currentDate));
-    setQuickAddTime('09:00');
-    setEditingEvent(null);
-    setIsEventModalOpen(true);
-  };
-
-  const handleOpenCreateTask = () => {
-    setQuickAddDate(formatLocalDate(currentDate));
-    setEditingTask(null);
-    setIsTaskModalOpen(true);
-  };
-
-  // Drag and Drop move handler
-  const handleMoveItem = (
-    type: 'event' | 'task',
-    id: string,
-    targetDateStr: string,
-    targetTimeStr?: string
-  ) => {
-    if (type === 'event') {
-      const eventToMove = calendarData.events.find(
-        (e) => (e.originalId || e._id) === id || e._id === id
-      );
-      if (!eventToMove) return;
-
-      const originalStart = new Date(eventToMove.start);
-      const originalEnd = new Date(eventToMove.end);
-      const durationMs = originalEnd.getTime() - originalStart.getTime();
-
-      let newStart: Date;
-      let newEnd: Date;
-      const updateData: Partial<CreateEventInput> = {};
-
-      if (eventToMove.allDay && !targetTimeStr) {
-        newStart = new Date(`${targetDateStr}T00:00:00.000Z`);
-        newEnd = new Date(newStart.getTime() + durationMs);
-      } else if (targetTimeStr) {
-        const [th, tm] = targetTimeStr.split(':').map(Number);
-        newStart = new Date(`${targetDateStr}T${String(th).padStart(2, '0')}:${String(tm).padStart(2, '0')}:00`);
-        newEnd = new Date(newStart.getTime() + durationMs);
-        if (eventToMove.allDay) {
-          updateData.allDay = false;
-        }
-      } else {
-        const h = originalStart.getHours();
-        const m = originalStart.getMinutes();
-        newStart = new Date(`${targetDateStr}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`);
-        newEnd = new Date(newStart.getTime() + durationMs);
-      }
-
-      updateData.start = newStart.toISOString();
-      updateData.end = newEnd.toISOString();
-
-      updateEventMutation.mutate({
-        id: eventToMove.originalId || eventToMove._id,
-        data: updateData,
-      });
-    } else if (type === 'task') {
-      const taskToMove = calendarData.tasks.find((t) => t._id === id);
-      if (!taskToMove) return;
-
-      const updatePayload: any = {
-        dueDate: new Date(`${targetDateStr}T00:00:00.000Z`).toISOString(),
-      };
-      if (targetTimeStr) {
-        updatePayload.dueTime = targetTimeStr;
-      }
-
-      updateTaskMutation.mutate({
-        id: taskToMove._id,
-        data: updatePayload,
-      });
-    }
-  };
-
-  // Submit Event Form
   const handleEventSubmit = async (data: CreateEventInput) => {
     if (editingEvent) {
-      const targetId = editingEvent.originalId || editingEvent._id;
-      await updateEventMutation.mutateAsync({ id: targetId, data });
+      await updateEventMutation.mutateAsync({
+        id: editingEvent.originalId || editingEvent._id,
+        data,
+      });
     } else {
       await createEventMutation.mutateAsync(data);
     }
   };
 
-  // Submit Task Form
   const handleTaskSubmit = async (data: CreateTaskInput) => {
     if (editingTask) {
-      await updateTaskMutation.mutateAsync({ id: editingTask._id, data });
+      await updateTaskMutation.mutateAsync({
+        id: editingTask._id,
+        data,
+      });
     } else {
       await createTaskMutation.mutateAsync(data);
     }
   };
 
+  const handleMoveItem = async (
+    item: CalendarSelectedItem,
+    newDateStr: string,
+    newStartTime?: string
+  ) => {
+    try {
+      if (item.type === 'event') {
+        const ev = item.raw as CalendarEvent;
+        const origStart = new Date(ev.start);
+        const origEnd = new Date(ev.end);
+        const duration = origEnd.getTime() - origStart.getTime();
+
+        const [y, m, d] = newDateStr.split('-').map(Number);
+        const nextStart = new Date(y, m - 1, d);
+
+        if (newStartTime && !ev.allDay) {
+          const [hh, mm] = newStartTime.split(':').map(Number);
+          nextStart.setHours(hh, mm, 0, 0);
+        } else {
+          nextStart.setHours(origStart.getHours(), origStart.getMinutes(), 0, 0);
+        }
+
+        const nextEnd = new Date(nextStart.getTime() + duration);
+
+        await updateEventMutation.mutateAsync({
+          id: ev.originalId || ev._id,
+          data: {
+            start: nextStart.toISOString(),
+            end: nextEnd.toISOString(),
+          },
+        });
+        toast.success('Đã cập nhật thời gian sự kiện');
+      } else if (item.type === 'task') {
+        const t = item.raw as Task;
+        const [y, m, d] = newDateStr.split('-').map(Number);
+        const nextDue = new Date(y, m - 1, d);
+        nextDue.setHours(23, 59, 59, 999);
+
+        await updateTaskMutation.mutateAsync({
+          id: t._id,
+          data: {
+            dueDate: nextDue.toISOString(),
+            dueTime: newStartTime || t.dueTime || null,
+          },
+        });
+        toast.success('Đã đổi hạn hoàn thành công việc');
+      }
+    } catch {
+      toast.error('Không thể di chuyển mục lịch');
+    }
+  };
+
   return (
-    <div className="space-y-4 max-w-7xl mx-auto pb-12">
+    <div className="space-y-4 max-w-7xl mx-auto flex flex-col h-full">
       {/* 1. Header Toolbar */}
       <CalendarHeader
         currentDate={currentDate}
-        onDateChange={setCurrentDate}
         viewMode={viewMode}
-        onViewModeChange={setViewMode}
         filters={filters}
-        onFiltersChange={setFilters}
         categories={categories}
-        onOpenCreateEvent={handleOpenCreateEvent}
-        onOpenCreateTask={handleOpenCreateTask}
+        onPrev={handlePrev}
+        onNext={handleNext}
+        onToday={handleToday}
+        onViewModeChange={setViewMode}
+        onFilterChange={setFilters}
+        onAddEvent={() => {
+          setEditingEvent(null);
+          setQuickAddDate(formatLocalDate(currentDate));
+          setQuickAddTime('09:00');
+          setIsEventModalOpen(true);
+        }}
+        onAddTask={() => {
+          setEditingTask(null);
+          setQuickAddDate(formatLocalDate(currentDate));
+          setIsTaskModalOpen(true);
+        }}
       />
 
-      {/* 2. Loading Indicator */}
+      {/* 2. Loading Skeleton Indicator */}
       {isCalendarLoading && (
-        <div className="w-full h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-          <div className="w-1/3 h-full bg-indigo-600 animate-pulse rounded-full" />
+        <div className="w-full">
+          <Skeleton className="h-1.5 w-full bg-indigo-500/30 rounded-full animate-pulse" />
         </div>
       )}
 
-      {/* 3. Active Calendar View */}
-      {viewMode === 'month' && (
-        <MonthView
-          days={monthDays}
-          events={calendarData.events}
-          tasks={calendarData.tasks}
-          goals={calendarData.goals}
-          filters={filters}
-          onSelectItem={setSelectedDetailItem}
-          onQuickAdd={handleQuickAdd}
-          onToggleTask={(id) => toggleTaskMutation.mutate(id)}
-          onMoveItem={handleMoveItem}
-        />
-      )}
+      {/* 3. Views based on viewMode */}
+      <div className="flex-1 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden p-2 sm:p-4">
+        {viewMode === 'month' && (
+          <MonthView
+            currentDate={currentDate}
+            days={monthDays}
+            events={calendarData.events}
+            tasks={calendarData.tasks}
+            goals={calendarData.goals}
+            filters={filters}
+            onSelectItem={setSelectedDetailItem}
+            onQuickAdd={handleQuickAdd}
+            onToggleTask={(id) => toggleTaskMutation.mutate(id)}
+            onMoveItem={handleMoveItem}
+          />
+        )}
 
-      {viewMode === 'week' && (
-        <WeekView
-          days={weekDays}
-          events={calendarData.events}
-          tasks={calendarData.tasks}
-          goals={calendarData.goals}
-          filters={filters}
-          onSelectItem={setSelectedDetailItem}
-          onQuickAdd={handleQuickAdd}
-          onToggleTask={(id) => toggleTaskMutation.mutate(id)}
-          onMoveItem={handleMoveItem}
-        />
-      )}
+        {viewMode === 'week' && (
+          <WeekView
+            currentDate={currentDate}
+            days={weekDays}
+            events={calendarData.events}
+            tasks={calendarData.tasks}
+            goals={calendarData.goals}
+            filters={filters}
+            onSelectItem={setSelectedDetailItem}
+            onQuickAdd={handleQuickAdd}
+            onToggleTask={(id) => toggleTaskMutation.mutate(id)}
+            onMoveItem={handleMoveItem}
+          />
+        )}
 
-      {viewMode === 'day' && (
-        <DayView
-          currentDate={currentDate}
-          events={calendarData.events}
-          tasks={calendarData.tasks}
-          goals={calendarData.goals}
-          filters={filters}
-          onSelectItem={setSelectedDetailItem}
-          onQuickAdd={handleQuickAdd}
-          onToggleTask={(id) => toggleTaskMutation.mutate(id)}
-          onMoveItem={handleMoveItem}
-        />
-      )}
+        {viewMode === 'day' && (
+          <DayView
+            currentDate={currentDate}
+            events={calendarData.events}
+            tasks={calendarData.tasks}
+            goals={calendarData.goals}
+            filters={filters}
+            onSelectItem={setSelectedDetailItem}
+            onQuickAdd={handleQuickAdd}
+            onToggleTask={(id) => toggleTaskMutation.mutate(id)}
+            onMoveItem={handleMoveItem}
+          />
+        )}
 
-      {viewMode === 'agenda' && (
-        <AgendaView
-          currentDate={currentDate}
-          events={calendarData.events}
-          tasks={calendarData.tasks}
-          goals={calendarData.goals}
-          filters={filters}
-          onSelectItem={setSelectedDetailItem}
-          onQuickAdd={handleQuickAdd}
-          onToggleTask={(id) => toggleTaskMutation.mutate(id)}
-        />
-      )}
+        {viewMode === 'agenda' && (
+          <AgendaView
+            currentDate={currentDate}
+            events={calendarData.events}
+            tasks={calendarData.tasks}
+            goals={calendarData.goals}
+            filters={filters}
+            onSelectItem={setSelectedDetailItem}
+            onQuickAdd={handleQuickAdd}
+            onToggleTask={(id) => toggleTaskMutation.mutate(id)}
+          />
+        )}
+      </div>
 
       {/* 4. Modals */}
-      {/* Event Modal (Create / Edit) */}
       <EventModal
         isOpen={isEventModalOpen}
         onClose={() => {
@@ -413,7 +456,6 @@ export const CalendarPage: React.FC = () => {
         isLoading={createEventMutation.isPending || updateEventMutation.isPending}
       />
 
-      {/* Task Modal (Create / Edit) */}
       <TaskModal
         isOpen={isTaskModalOpen}
         onClose={() => {
@@ -427,7 +469,6 @@ export const CalendarPage: React.FC = () => {
         isLoading={createTaskMutation.isPending || updateTaskMutation.isPending}
       />
 
-      {/* Item Detail Modal */}
       <CalendarItemDetailModal
         isOpen={Boolean(selectedDetailItem)}
         onClose={() => setSelectedDetailItem(null)}
@@ -446,7 +487,6 @@ export const CalendarPage: React.FC = () => {
         onToggleTask={(id) => toggleTaskMutation.mutate(id)}
       />
 
-      {/* Confirm Delete Event Modal */}
       <ConfirmModal
         isOpen={Boolean(deletingEvent)}
         onClose={() => setDeletingEvent(null)}
@@ -455,14 +495,14 @@ export const CalendarPage: React.FC = () => {
             deleteEventMutation.mutate(deletingEvent.originalId || deletingEvent._id);
           }
         }}
-        title="Xóa sự kiện"
-        message={`Bạn có chắc chắn muốn xóa sự kiện "${deletingEvent?.title}"? Hành động này không thể hoàn tác.`}
-        confirmText="Xóa sự kiện"
+        title={t('common.confirmDeleteTitle')}
+        description={`${t('common.confirmDeleteDesc')} ("${deletingEvent?.title}")`}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
         variant="danger"
         isLoading={deleteEventMutation.isPending}
       />
 
-      {/* Confirm Delete Task Modal */}
       <ConfirmModal
         isOpen={Boolean(deletingTask)}
         onClose={() => setDeletingTask(null)}
@@ -471,9 +511,10 @@ export const CalendarPage: React.FC = () => {
             deleteTaskMutation.mutate(deletingTask._id);
           }
         }}
-        title="Xóa công việc"
-        message={`Bạn có chắc chắn muốn xóa công việc "${deletingTask?.title}"?`}
-        confirmText="Xóa công việc"
+        title={t('common.confirmDeleteTitle')}
+        description={`${t('common.confirmDeleteDesc')} ("${deletingTask?.title}")`}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
         variant="danger"
         isLoading={deleteTaskMutation.isPending}
       />

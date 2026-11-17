@@ -8,10 +8,10 @@ import {
   BarChart3,
   ChevronLeft,
   ChevronRight,
-  Folder,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { categoryService } from '../../services/category.service';
+import { useI18n } from '../../i18n';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -19,6 +19,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse }) => {
+  const { t } = useI18n();
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
     queryFn: () => categoryService.getCategories(),
@@ -27,33 +28,33 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
   const navItems = [
     {
       to: '/',
-      label: 'Tổng quan',
+      label: t('nav.dashboard'),
       icon: LayoutDashboard,
       badge: null,
     },
     {
       to: '/goals',
-      label: 'Mục tiêu',
+      label: t('nav.goals'),
       icon: Target,
       badge: null,
     },
     {
       to: '/tasks',
-      label: 'Công việc',
+      label: t('nav.tasks'),
       icon: CheckSquare,
       badge: null,
     },
     {
       to: '/calendar',
-      label: 'Lịch biểu',
+      label: t('nav.calendar'),
       icon: Calendar,
-      badge: 'Phase 4',
+      badge: null,
     },
     {
       to: '/insights',
-      label: 'Thống kê',
+      label: t('nav.insights'),
       icon: BarChart3,
-      badge: 'Phase 5',
+      badge: null,
     },
   ];
 
@@ -78,7 +79,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
                 GoalCalendar
               </span>
               <span className="text-[10px] uppercase font-semibold text-indigo-500 tracking-wider">
-                Phase 3 Active
+                System Active
               </span>
             </div>
           )}
@@ -88,7 +89,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
         <button
           onClick={onToggleCollapse}
           className="hidden md:flex p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors"
-          title={isCollapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'}
+          title={isCollapsed ? t('nav.expandSidebar') : t('nav.collapseSidebar')}
         >
           {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
@@ -113,7 +114,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
               title={isCollapsed ? item.label : undefined}
             >
               <div className="flex items-center space-x-3">
-                <Icon className={`w-5 h-5 flex-shrink-0 group-hover:scale-110 transition-transform`} />
+                <Icon className="w-5 h-5 flex-shrink-0 group-hover:scale-110 transition-transform" />
                 {!isCollapsed && <span className="truncate">{item.label}</span>}
               </div>
 
@@ -130,7 +131,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
         {!isCollapsed && categories.length > 0 && (
           <div className="pt-6 mt-6 border-t border-slate-100 dark:border-slate-800">
             <div className="px-3 pb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-              Danh mục ({categories.length})
+              {t('nav.categories')} ({categories.length})
             </div>
             <div className="space-y-1">
               {categories.map((cat) => (
@@ -153,8 +154,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
       {/* Footer info */}
       {!isCollapsed && (
         <div className="p-4 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-400 dark:text-slate-500">
-          <p className="truncate">Goal & To-Do System</p>
-          <p className="text-[10px] text-slate-400">v1.0 • React + Express + Mongo</p>
+          <p className="truncate">{t('common.appTagline')}</p>
+          <p className="text-[10px] text-slate-400">{t('nav.version')}</p>
         </div>
       )}
     </aside>

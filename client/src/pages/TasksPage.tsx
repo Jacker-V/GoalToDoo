@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Plus,
   Search,
@@ -9,6 +10,7 @@ import {
   CheckSquare,
   ChevronDown,
   ChevronUp,
+  Download,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { taskService } from '../services/task.service';
@@ -18,7 +20,11 @@ import { TaskItem } from '../components/tasks/TaskItem';
 import { TaskModal } from '../components/tasks/TaskModal';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { Button } from '../components/ui/Button';
+import { Skeleton } from '../components/ui/Skeleton';
+import { EmptyState } from '../components/ui/EmptyState';
+import { ExportModal } from '../components/common/ExportModal';
 import { toast } from '../store/useToastStore';
+import { useI18n } from '../i18n';
 import {
   getTodayLocalDateString,
   getStartAndEndOfWeek,
@@ -27,7 +33,10 @@ import {
 type TaskTab = 'today' | 'week' | 'upcoming' | 'overdue' | 'completed';
 
 export const TasksPage: React.FC = () => {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const [activeTab, setActiveTab] = useState<TaskTab>('today');
   const [searchQuery, setSearchQuery] = useState('');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
@@ -37,8 +46,18 @@ export const TasksPage: React.FC = () => {
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [deletingTask, setDeletingTask] = useState<Task | null>(null);
+
+  // Open modal if ?create=true
+  useEffect(() => {
+    if (searchParams.get('create') === 'true') {
+      setEditingTask(null);
+      setIsModalOpen(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // Fetch Tasks
   const { data: tasks = [], isLoading: isTasksLoading } = useQuery({
@@ -61,11 +80,11 @@ export const TasksPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['goals'] });
       queryClient.invalidateQueries({ queryKey: ['goalTree'] });
-      toast.success('Đã thêm công việc thành công!');
+      toast.success(t('common.success'));
       setIsModalOpen(false);
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.error?.message || 'Không thể tạo công việc');
+      toast.error(err.response?.data?.error?.message || t('common.error'));
     },
   });
 
@@ -77,12 +96,12 @@ export const TasksPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['goals'] });
       queryClient.invalidateQueries({ queryKey: ['goalTree'] });
-      toast.success('Đã cập nhật công việc!');
+      toast.success(t('common.success'));
       setIsModalOpen(false);
       setEditingTask(null);
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.error?.message || 'Không thể cập nhật công việc');
+      toast.error(err.response?.data?.error?.message || t('common.error'));
     },
   });
 
@@ -93,79 +112,31 @@ export const TasksPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['goals'] });
       queryClient.invalidateQueries({ queryKey: ['goalTree'] });
-      toast.success('Đã xóa công việc');
+      toast.success(t('common.success'));
       setDeletingTask(null);
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.error?.message || 'Không thể xóa công việc');
+      toast.error(err.response?.data?.error?.message || t('common.error'));
     },
   });
 
-  // Toggle Task Completion (Optimistic Update)
+  // Optimistic Toggle Task Completion Mutation
   const toggleTaskMutation = useMutation({
     mutationFn: (task: Task) => taskService.toggleTask(task._id),
-    onMutate: async (toggledTask) => {
+    onMutate: async (task: Task) => {
       await queryClient.cancelQueries({ queryKey: ['tasks'] });
       const previousTasks = queryClient.getQueryData<Task[]>(['tasks']);
 
       queryClient.setQueryData<Task[]>(['tasks'], (old = []) =>
         old.map((t) =>
-          t._id === toggledTask._id
+          t._id === task._id
             ? {
                 ...t,
                 isCompleted: !t.isCompleted,
                 completedAt: !t.isCompleted ? new Date().toISOString() : null,
-                subtasks: t.subtasks
-                  ? t.subtasks.map((s) => ({ ...s, done: !t.isCompleted }))
-                  : [],
               }
             : t
         )
-      );
-
-      return { previousTasks };
-    },
-    onError: (_err, _newTask, context) => {
-      if (context?.previousTasks) {
-        queryClient.setQueryData(['tasks'], context.previousTasks);
-      }
-      toast.error('Có lỗi xảy ra khi cập nhật trạng thái');
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['goals'] });
-      queryClient.invalidateQueries({ queryKey: ['goalTree'] });
-    },
-  });
-
-  // Toggle Recurring Task Today (Optimistic Update)
-  const toggleRecurringMutation = useMutation({
-    mutationFn: async (task: Task) => {
-      const todayStr = getTodayLocalDateString();
-      if (task.isCompletedToday) {
-        return taskService.uncompleteRecurring(task._id, todayStr);
-      } else {
-        return taskService.completeRecurring(task._id, todayStr);
-      }
-    },
-    onMutate: async (task) => {
-      await queryClient.cancelQueries({ queryKey: ['tasks'] });
-      const previousTasks = queryClient.getQueryData<Task[]>(['tasks']);
-
-      queryClient.setQueryData<Task[]>(['tasks'], (old = []) =>
-        old.map((t) => {
-          if (t._id === task._id) {
-            const nextDone = !t.isCompletedToday;
-            const currentStreak = t.streak || 0;
-            const nextStreak = nextDone ? currentStreak + 1 : Math.max(0, currentStreak - 1);
-            return {
-              ...t,
-              isCompletedToday: nextDone,
-              streak: nextStreak,
-            };
-          }
-          return t;
-        })
       );
 
       return { previousTasks };
@@ -174,33 +145,36 @@ export const TasksPage: React.FC = () => {
       if (context?.previousTasks) {
         queryClient.setQueryData(['tasks'], context.previousTasks);
       }
-      toast.error('Có lỗi xảy ra khi cập nhật chuỗi thói quen');
+      toast.error(t('common.error'));
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['goals'] });
       queryClient.invalidateQueries({ queryKey: ['goalTree'] });
+      queryClient.invalidateQueries({ queryKey: ['statsSummary'] });
     },
   });
 
-  // Update Subtasks Checklist
-  const updateSubtasksMutation = useMutation({
-    mutationFn: ({ task, subtasks }: { task: Task; subtasks: Subtask[] }) =>
-      taskService.updateTask(task._id, { subtasks }),
-    onMutate: async ({ task, subtasks }) => {
+  // Optimistic Toggle Recurring Task Mutation
+  const toggleRecurringMutation = useMutation({
+    mutationFn: async (task: Task) => {
+      const today = getTodayLocalDateString();
+      if (task.isCompletedToday) {
+        return taskService.uncompleteRecurring(task._id, today);
+      } else {
+        return taskService.completeRecurring(task._id, today);
+      }
+    },
+    onMutate: async (task: Task) => {
       await queryClient.cancelQueries({ queryKey: ['tasks'] });
       const previousTasks = queryClient.getQueryData<Task[]>(['tasks']);
-
-      const allDone = subtasks.length > 0 && subtasks.every((s) => s.done);
 
       queryClient.setQueryData<Task[]>(['tasks'], (old = []) =>
         old.map((t) =>
           t._id === task._id
             ? {
                 ...t,
-                subtasks,
-                isCompleted: allDone,
-                progress: Math.round((subtasks.filter((s) => s.done).length / subtasks.length) * 100),
+                isCompletedToday: !t.isCompletedToday,
               }
             : t
         )
@@ -208,93 +182,101 @@ export const TasksPage: React.FC = () => {
 
       return { previousTasks };
     },
-    onError: (_err, _vars, context) => {
+    onError: (_err, _task, context) => {
       if (context?.previousTasks) {
         queryClient.setQueryData(['tasks'], context.previousTasks);
       }
-      toast.error('Không thể cập nhật danh sách việc con');
+      toast.error(t('common.error'));
     },
     onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['goals'] });
+      queryClient.invalidateQueries({ queryKey: ['goalTree'] });
+      queryClient.invalidateQueries({ queryKey: ['statsSummary'] });
+    },
+  });
+
+  // Update Subtasks Checklist
+  const updateSubtasksMutation = useMutation({
+    mutationFn: ({ task, subtasks }: { task: Task; subtasks: Subtask[] }) =>
+      taskService.updateTask(task._id, { subtasks }),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['goals'] });
       queryClient.invalidateQueries({ queryKey: ['goalTree'] });
     },
   });
 
-  // Extract all unique tags
+  // All distinct tags from tasks for filtering
   const allTags = useMemo(() => {
     const set = new Set<string>();
     tasks.forEach((t) => {
-      if (t.tags) t.tags.forEach((tag) => set.add(tag));
+      t.tags?.forEach((tg) => set.add(tg));
     });
-    return Array.from(set);
+    return Array.from(set).sort();
   }, [tasks]);
 
-  // Tab Filtering & Search Logic
+  // Filter tasks based on activeTab, search, priority, goal, tag
   const { activeTasks, completedInTab } = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-
     const endOfToday = new Date(today);
     endOfToday.setHours(23, 59, 59, 999);
 
     const { start: startOfWeek, end: endOfWeek } = getStartAndEndOfWeek(today);
 
-    const matchesSearchAndFilter = (t: Task): boolean => {
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matchesTitle = t.title.toLowerCase().includes(q);
-        const matchesNotes = t.notes?.toLowerCase().includes(q);
-        const matchesTags = t.tags?.some((tag) => tag.toLowerCase().includes(q));
-        if (!matchesTitle && !matchesNotes && !matchesTags) return false;
-      }
-      if (priorityFilter !== 'all' && t.priority !== priorityFilter) {
-        return false;
-      }
-      if (goalFilter !== 'all') {
-        if (goalFilter === 'none' && t.goalId) return false;
-        if (goalFilter !== 'none' && t.goalId !== goalFilter) return false;
-      }
-      if (tagFilter !== 'all' && (!t.tags || !t.tags.includes(tagFilter))) {
-        return false;
-      }
-      return true;
-    };
-
-    const taskMatchesTabTimeframe = (t: Task): boolean => {
-      const isRecurring = t.recurrence && t.recurrence.type !== 'none';
-      const taskDueDate = t.dueDate ? new Date(t.dueDate) : null;
+    const taskMatchesTabTimeframe = (task: Task): boolean => {
+      const isRecurring = task.recurrence && task.recurrence.type !== 'none';
+      const d = task.dueDate ? new Date(task.dueDate) : null;
 
       if (activeTab === 'completed') {
-        return t.isCompleted || (!!isRecurring && !!t.isCompletedToday);
-      }
-
-      if (activeTab === 'overdue') {
-        return !t.isCompleted && !!taskDueDate && taskDueDate.getTime() < today.getTime();
+        return isRecurring ? !!task.isCompletedToday : task.isCompleted;
       }
 
       if (activeTab === 'today') {
-        // Tasks due today, or recurring habit
-        const isDueToday =
-          !!taskDueDate &&
-          taskDueDate.getTime() >= today.getTime() &&
-          taskDueDate.getTime() <= endOfToday.getTime();
-        return isDueToday || isRecurring;
+        const isDueToday = d && d.getTime() >= today.getTime() && d.getTime() <= endOfToday.getTime();
+        return Boolean(isDueToday || isRecurring);
       }
 
       if (activeTab === 'week') {
-        // Tasks due within the current week (Monday through Sunday)
-        if (!taskDueDate) return false;
-        return (
-          taskDueDate.getTime() >= startOfWeek.getTime() &&
-          taskDueDate.getTime() <= endOfWeek.getTime()
-        );
+        const isDueThisWeek = d && d.getTime() >= startOfWeek.getTime() && d.getTime() <= endOfWeek.getTime();
+        return Boolean(isDueThisWeek || isRecurring);
       }
 
       if (activeTab === 'upcoming') {
-        // Tasks due after today OR unscheduled tasks without a due date
-        if (!taskDueDate) return true; // unscheduled tasks belong in upcoming!
-        return taskDueDate.getTime() > endOfToday.getTime();
+        const isFutureOrUnscheduled = !d || d.getTime() > endOfToday.getTime();
+        return Boolean(isFutureOrUnscheduled && !isRecurring);
+      }
+
+      if (activeTab === 'overdue') {
+        const isOverdue = d && d.getTime() < today.getTime();
+        const isDone = isRecurring ? !!task.isCompletedToday : task.isCompleted;
+        return Boolean(isOverdue && !isDone);
+      }
+
+      return true;
+    };
+
+    const matchesSearchAndFilter = (task: Task): boolean => {
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchTitle = task.title.toLowerCase().includes(q);
+        const matchNotes = (task.notes || '').toLowerCase().includes(q);
+        const matchTag = task.tags?.some((t) => t.toLowerCase().includes(q));
+        if (!matchTitle && !matchNotes && !matchTag) return false;
+      }
+
+      if (priorityFilter !== 'all' && task.priority !== priorityFilter) {
+        return false;
+      }
+
+      if (goalFilter !== 'all') {
+        if (goalFilter === 'none' && task.goalId) return false;
+        if (goalFilter !== 'none' && task.goalId !== goalFilter) return false;
+      }
+
+      if (tagFilter !== 'all' && (!task.tags || !task.tags.includes(tagFilter))) {
+        return false;
       }
 
       return true;
@@ -344,19 +326,15 @@ export const TasksPage: React.FC = () => {
       if (isDone) {
         completedCount++;
       } else {
-        // Overdue: past due date
         if (d && d.getTime() < today.getTime()) {
           overdueCount++;
         }
-        // Today: due today or recurring
         if ((d && d.getTime() >= today.getTime() && d.getTime() <= endOfToday.getTime()) || isRecurring) {
           todayCount++;
         }
-        // Week: due within this week
         if (d && d.getTime() >= startOfWeek.getTime() && d.getTime() <= endOfWeek.getTime()) {
           weekCount++;
         }
-        // Upcoming: due in future OR unscheduled (no due date)
         if (!d || d.getTime() > endOfToday.getTime()) {
           upcomingCount++;
         }
@@ -380,23 +358,36 @@ export const TasksPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white flex items-center space-x-2">
             <CheckSquare className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-            <span>Quản lý Công việc (Tasks)</span>
+            <span>{t('tasks.title')}</span>
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Theo dõi to-do list, habit hàng ngày và tiến độ các đầu việc
+            {t('tasks.subtitle')}
           </p>
         </div>
 
-        <Button
-          onClick={() => {
-            setEditingTask(null);
-            setIsModalOpen(true);
-          }}
-          className="shadow-sm"
-        >
-          <Plus className="w-4 h-4 mr-1.5" />
-          Thêm công việc
-        </Button>
+        <div className="flex items-center space-x-2.5">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsExportModalOpen(true)}
+            className="text-xs"
+          >
+            <Download className="w-3.5 h-3.5 mr-1.5" />
+            {t('tasks.quickExport')}
+          </Button>
+
+          <Button
+            size="sm"
+            onClick={() => {
+              setEditingTask(null);
+              setIsModalOpen(true);
+            }}
+            className="shadow-sm text-xs"
+          >
+            <Plus className="w-4 h-4 mr-1.5" />
+            {t('tasks.addTask')}
+          </Button>
+        </div>
       </div>
 
       {/* Tabs Navigation */}
@@ -410,7 +401,7 @@ export const TasksPage: React.FC = () => {
           }`}
         >
           <Calendar className="w-4 h-4" />
-          <span>Hôm nay</span>
+          <span>{t('tasks.tabs.today')}</span>
           <span
             className={`px-1.5 py-0.2 rounded-full text-xs ${
               activeTab === 'today'
@@ -430,7 +421,8 @@ export const TasksPage: React.FC = () => {
               : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
         >
-          <span>Tuần này</span>
+          <Calendar className="w-4 h-4" />
+          <span>{t('tasks.tabs.week')}</span>
           <span
             className={`px-1.5 py-0.2 rounded-full text-xs ${
               activeTab === 'week'
@@ -451,7 +443,7 @@ export const TasksPage: React.FC = () => {
           }`}
         >
           <Clock className="w-4 h-4" />
-          <span>Sắp tới</span>
+          <span>{t('tasks.tabs.upcoming')}</span>
           <span
             className={`px-1.5 py-0.2 rounded-full text-xs ${
               activeTab === 'upcoming'
@@ -472,7 +464,7 @@ export const TasksPage: React.FC = () => {
           }`}
         >
           <AlertCircle className="w-4 h-4" />
-          <span>Quá hạn</span>
+          <span>{t('tasks.tabs.overdue')}</span>
           <span
             className={`px-1.5 py-0.2 rounded-full text-xs ${
               activeTab === 'overdue'
@@ -493,7 +485,7 @@ export const TasksPage: React.FC = () => {
           }`}
         >
           <CheckCircle2 className="w-4 h-4" />
-          <span>Đã xong</span>
+          <span>{t('tasks.tabs.completed')}</span>
           <span
             className={`px-1.5 py-0.2 rounded-full text-xs ${
               activeTab === 'completed'
@@ -513,7 +505,7 @@ export const TasksPage: React.FC = () => {
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Tìm kiếm công việc theo từ khóa..."
+            placeholder={t('tasks.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-3.5 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -526,22 +518,22 @@ export const TasksPage: React.FC = () => {
           <select
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
-            className="px-3 py-2 text-xs font-medium rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="px-3 py-2 text-xs font-medium rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
           >
-            <option value="all">Tất cả ưu tiên</option>
-            <option value="high">Ưu tiên cao</option>
-            <option value="medium">Ưu tiên TB</option>
-            <option value="low">Ưu tiên thấp</option>
+            <option value="all">{t('common.priority.all')}</option>
+            <option value="high">{t('common.priority.high')}</option>
+            <option value="medium">{t('common.priority.medium')}</option>
+            <option value="low">{t('common.priority.low')}</option>
           </select>
 
-          {/* Goal Filter */}
+          {/* Goal Link */}
           <select
             value={goalFilter}
             onChange={(e) => setGoalFilter(e.target.value)}
-            className="px-3 py-2 text-xs font-medium rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 max-w-[160px] truncate"
+            className="px-3 py-2 text-xs font-medium rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 max-w-[180px] truncate cursor-pointer"
           >
-            <option value="all">Tất cả mục tiêu</option>
-            <option value="none">Không thuộc mục tiêu</option>
+            <option value="all">{t('tasks.filterGoal')}</option>
+            <option value="none">-- Không mục tiêu --</option>
             {goals.map((g) => (
               <option key={g._id} value={g._id}>
                 {g.title}
@@ -549,17 +541,17 @@ export const TasksPage: React.FC = () => {
             ))}
           </select>
 
-          {/* Tag Filter */}
+          {/* Tags */}
           {allTags.length > 0 && (
             <select
               value={tagFilter}
               onChange={(e) => setTagFilter(e.target.value)}
-              className="px-3 py-2 text-xs font-medium rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="px-3 py-2 text-xs font-medium rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
             >
-              <option value="all">Tất cả thẻ</option>
-              {allTags.map((t) => (
-                <option key={t} value={t}>
-                  #{t}
+              <option value="all">{t('tasks.filterTag')}</option>
+              {allTags.map((tg) => (
+                <option key={tg} value={tg}>
+                  #{tg}
                 </option>
               ))}
             </select>
@@ -570,29 +562,27 @@ export const TasksPage: React.FC = () => {
       {/* Task List Items */}
       {isTasksLoading ? (
         <div className="space-y-3">
-          {[1, 2, 3].map((n) => (
-            <div
-              key={n}
-              className="h-20 bg-slate-100 dark:bg-slate-800 rounded-xl animate-pulse"
-            />
+          {[1, 2, 3, 4].map((n) => (
+            <Skeleton key={n} className="h-20 w-full rounded-2xl" />
           ))}
         </div>
       ) : activeTasks.length === 0 && completedInTab.length === 0 ? (
-        <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-8 space-y-3">
-          <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
-            <CheckCircle2 className="w-6 h-6" />
-          </div>
-          <h4 className="text-base font-bold text-slate-800 dark:text-white">
-            Không có công việc nào trong danh sách này
-          </h4>
-          <p className="text-sm text-slate-500 max-w-sm mx-auto">
-            {activeTab === 'today'
-              ? 'Tuyệt vời! Bạn không còn việc tồn đọng nào cho ngày hôm nay.'
+        <EmptyState
+          icon={CheckCircle2}
+          title={t('tasks.emptyTitle')}
+          description={
+            activeTab === 'today'
+              ? t('tasks.emptyToday')
               : activeTab === 'overdue'
-              ? 'Không có công việc nào bị quá hạn. Tiến độ rất chuẩn xác!'
-              : 'Bấm nút "Thêm công việc" phía trên để lên kế hoạch mới.'}
-          </p>
-        </div>
+              ? t('tasks.emptyOverdue')
+              : t('tasks.emptyGeneral')
+          }
+          actionLabel={t('tasks.addTask')}
+          onAction={() => {
+            setEditingTask(null);
+            setIsModalOpen(true);
+          }}
+        />
       ) : (
         <div className="space-y-6">
           {/* Active Tasks Section */}
@@ -624,14 +614,14 @@ export const TasksPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowCompletedSection(!showCompletedSection)}
-                className="flex items-center space-x-2 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 mb-3 transition-colors"
+                className="flex items-center space-x-2 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 mb-3 transition-colors cursor-pointer"
               >
                 {showCompletedSection ? (
                   <ChevronDown className="w-4 h-4 text-slate-400" />
                 ) : (
                   <ChevronUp className="w-4 h-4 text-slate-400" />
                 )}
-                <span>Đã hoàn thành ({completedInTab.length})</span>
+                <span>{t('tasks.completedSection', { count: completedInTab.length })}</span>
               </button>
 
               {showCompletedSection && (
@@ -660,7 +650,7 @@ export const TasksPage: React.FC = () => {
         </div>
       )}
 
-      {/* Task Create / Edit Modal */}
+      {/* Create / Edit Task Modal */}
       <TaskModal
         isOpen={isModalOpen}
         onClose={() => {
@@ -669,10 +659,7 @@ export const TasksPage: React.FC = () => {
         }}
         onSubmit={async (data) => {
           if (editingTask) {
-            await updateTaskMutation.mutateAsync({
-              id: editingTask._id,
-              data,
-            });
+            await updateTaskMutation.mutateAsync({ id: editingTask._id, data });
           } else {
             await createTaskMutation.mutateAsync(data);
           }
@@ -687,15 +674,24 @@ export const TasksPage: React.FC = () => {
       <ConfirmModal
         isOpen={!!deletingTask}
         onClose={() => setDeletingTask(null)}
-        onConfirm={() => {
+        onConfirm={async () => {
           if (deletingTask) {
-            deleteTaskMutation.mutate(deletingTask._id);
+            await deleteTaskMutation.mutateAsync(deletingTask._id);
           }
         }}
-        title="Xác nhận xóa công việc"
-        message={`Bạn có chắc chắn muốn xóa vĩnh viễn công việc "${deletingTask?.title}"?`}
-        confirmLabel="Xóa công việc"
+        title={t('common.confirmDeleteTitle')}
+        description={`${t('common.confirmDeleteDesc')} ("${deletingTask?.title}")`}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
+        variant="danger"
         isLoading={deleteTaskMutation.isPending}
+      />
+
+      {/* Export Modal */}
+      <ExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        defaultType="tasks"
       />
     </div>
   );

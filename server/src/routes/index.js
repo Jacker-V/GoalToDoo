@@ -5,6 +5,7 @@ import goalRoutes from './goal.routes.js';
 import taskRoutes from './task.routes.js';
 import eventRoutes from './event.routes.js';
 import calendarRoutes from './calendar.routes.js';
+import statsRoutes from './stats.routes.js';
 
 const router = Router();
 
@@ -22,5 +23,6 @@ router.use('/goals', goalRoutes);
 router.use('/tasks', taskRoutes);
 router.use('/events', eventRoutes);
 router.use('/calendar', calendarRoutes);
+router.use('/stats', statsRoutes);
 
 export default router;
