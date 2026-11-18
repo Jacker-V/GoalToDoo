@@ -6,16 +6,13 @@ import {
   Target,
   Repeat,
   Plus,
-  Tag,
-  AlertCircle,
-  Flame,
 } from 'lucide-react';
 import type { CalendarEvent } from '../../types/event';
 import type { Task } from '../../types/task';
 import type { Goal } from '../../types/goal';
 import type { CalendarFilterState } from '../../types/calendar';
 import type { CalendarSelectedItem } from './CalendarItemDetailModal';
-import { formatLocalDate, formatDateVi } from '../../utils/date';
+import { formatLocalDate } from '../../utils/date';
 import { formatTimeHHmm, getItemDateStr } from '../../utils/calendar';
 
 interface DayViewProps {
@@ -27,7 +24,7 @@ interface DayViewProps {
   onSelectItem: (item: CalendarSelectedItem) => void;
   onQuickAdd: (dateStr: string, timeStr?: string) => void;
   onToggleTask: (taskId: string) => void;
-  onMoveItem: (type: 'event' | 'task', id: string, targetDateStr: string, targetTimeStr?: string) => void;
+  onMoveItem: (type: 'task' | 'event', id: string, targetDateStr: string, targetTimeStr?: string) => void;
 }
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);

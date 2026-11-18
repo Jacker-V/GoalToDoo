@@ -1,5 +1,5 @@
 import React from 'react';
-import { Keyboard, Plus, Calendar, HelpCircle, X } from 'lucide-react';
+import { Plus, Calendar, HelpCircle, X } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { useI18n } from '../../i18n';

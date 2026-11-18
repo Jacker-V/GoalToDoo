@@ -5,16 +5,14 @@ import {
   CheckSquare,
   Square,
   Target,
-  Repeat,
   Plus,
-  Flame,
 } from 'lucide-react';
 import type { CalendarEvent } from '../../types/event';
 import type { Task } from '../../types/task';
 import type { Goal } from '../../types/goal';
 import type { CalendarFilterState } from '../../types/calendar';
 import type { CalendarSelectedItem } from './CalendarItemDetailModal';
-import { formatDateVi, formatLocalDate } from '../../utils/date';
+import { formatLocalDate } from '../../utils/date';
 import { formatTimeHHmm, getItemDateStr } from '../../utils/calendar';
 
 interface AgendaViewProps {
@@ -26,6 +24,7 @@ interface AgendaViewProps {
   onSelectItem: (item: CalendarSelectedItem) => void;
   onQuickAdd: (dateStr: string) => void;
   onToggleTask: (taskId: string) => void;
+  onMoveItem?: (type: 'task' | 'event', id: string, targetDateStr: string, targetTimeStr?: string) => void;
 }
 
 export const AgendaView: React.FC<AgendaViewProps> = ({

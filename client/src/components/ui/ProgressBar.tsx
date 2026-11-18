@@ -1,9 +1,10 @@
 import React from 'react';
-import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 export interface ProgressBarProps {
-  value: number; // 0 - 100
+  value?: number; // 0 - 100
+  progress?: number;
+  color?: string;
   showLabel?: boolean;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
@@ -12,24 +13,31 @@ export interface ProgressBarProps {
 
 export const ProgressBar: React.FC<ProgressBarProps> = ({
   value,
+  progress,
+  color,
   showLabel = false,
   size = 'md',
   className,
   animate = true,
 }) => {
-  const clampedValue = Math.min(Math.max(value, 0), 100);
+  const actualValue = value ?? progress ?? 0;
+  const clampedValue = Math.min(Math.max(actualValue, 0), 100);
+
+  const isCustomColor = color && (color.startsWith('#') || color.startsWith('rgb') || color.startsWith('hsl'));
 
   // Dynamic color coding according to specification:
   // red (<30%), amber/orange (30-70%), green (>70%), yellow/blue when 100%
-  let barColor = 'bg-rose-500';
-  if (clampedValue >= 100) {
-    barColor = 'bg-gradient-to-r from-amber-400 to-blue-600';
-  } else if (clampedValue >= 70) {
-    barColor = 'bg-emerald-500';
-  } else if (clampedValue >= 30) {
-    barColor = 'bg-amber-500';
-  } else {
-    barColor = 'bg-rose-500';
+  let barColor = !isCustomColor && color ? color : 'bg-rose-500';
+  if (!color) {
+    if (clampedValue >= 100) {
+      barColor = 'bg-gradient-to-r from-amber-400 to-blue-600';
+    } else if (clampedValue >= 70) {
+      barColor = 'bg-emerald-500';
+    } else if (clampedValue >= 30) {
+      barColor = 'bg-amber-500';
+    } else {
+      barColor = 'bg-rose-500';
+    }
   }
 
   const heights = {
@@ -44,10 +52,13 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
         <div
           className={twMerge(
             'h-full rounded-full',
-            barColor,
+            !isCustomColor ? barColor : '',
             animate ? 'transition-all duration-500 ease-out' : ''
           )}
-          style={{ width: `${clampedValue}%` }}
+          style={{
+            width: `${clampedValue}%`,
+            ...(isCustomColor ? { backgroundColor: color } : {}),
+          }}
         />
       </div>
       {showLabel && (

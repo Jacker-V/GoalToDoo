@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useRef, useId } from 'react';
-import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { Sparkles } from 'lucide-react';
 
@@ -60,20 +59,16 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
   const strokeDashoffset = circumference - (clamped / 100) * circumference;
 
   // Determine color scheme based on percent
-  let strokeColor = '#f43f5e'; // < 30%: red / rose
   let textColor = 'text-rose-600 dark:text-rose-400';
   let gradientStops = { from: '#f43f5e', to: '#fb7185' };
 
   if (clamped >= 100) {
-    strokeColor = `url(#${gradientId}-golden)`;
     textColor = 'text-amber-500 dark:text-amber-400';
     gradientStops = { from: '#f59e0b', to: '#3b82f6' };
   } else if (clamped >= 70) {
-    strokeColor = '#10b981'; // > 70%: green / emerald
     textColor = 'text-emerald-600 dark:text-emerald-400';
     gradientStops = { from: '#10b981', to: '#34d399' };
   } else if (clamped >= 30) {
-    strokeColor = '#f59e0b'; // 30% - 70%: amber / orange
     textColor = 'text-amber-600 dark:text-amber-400';
     gradientStops = { from: '#f59e0b', to: '#fbbf24' };
   }

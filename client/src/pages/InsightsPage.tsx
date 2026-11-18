@@ -38,7 +38,7 @@ export const InsightsPage: React.FC = () => {
   });
 
   // 1. Stats Summary Query
-  const { data: summary, isLoading: isSummaryLoading } = useQuery({
+  const { data: summary } = useQuery({
     queryKey: ['statsSummary', period, customStartDate, customEndDate],
     queryFn: () =>
       statsService.getSummary(
@@ -50,7 +50,7 @@ export const InsightsPage: React.FC = () => {
   });
 
   // 2. Heatmap Query
-  const { data: heatmap, isLoading: isHeatmapLoading } = useQuery({
+  const { data: heatmap } = useQuery({
     queryKey: ['statsHeatmap', year],
     queryFn: () => statsService.getHeatmap(year),
   });
@@ -77,7 +77,7 @@ export const InsightsPage: React.FC = () => {
   });
 
   // 5. Category Stats Query
-  const { data: byCategory, isLoading: isCategoryLoading } = useQuery({
+  const { data: byCategory } = useQuery({
     queryKey: ['statsByCategory'],
     queryFn: () => statsService.getByCategory(),
   });

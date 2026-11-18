@@ -14,8 +14,6 @@ type DonutMetric = 'tasks' | 'allTasks' | 'goals';
 
 export const CategoryDonutChart: React.FC<CategoryDonutChartProps> = ({
   categories = [],
-  totalTasks = 0,
-  totalGoals = 0,
   className = '',
 }) => {
   const { t } = useI18n();

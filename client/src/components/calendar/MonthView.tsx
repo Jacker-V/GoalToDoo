@@ -5,8 +5,6 @@ import {
   Square,
   Repeat,
   Target,
-  Flame,
-  Clock,
 } from 'lucide-react';
 import type { CalendarDayInfo } from '../../utils/calendar';
 import { WEEKDAY_LABELS_VI, formatTimeHHmm, getItemDateStr } from '../../utils/calendar';
@@ -17,15 +15,16 @@ import type { CalendarFilterState } from '../../types/calendar';
 import type { CalendarSelectedItem } from './CalendarItemDetailModal';
 
 interface MonthViewProps {
+  currentDate?: Date;
   days: CalendarDayInfo[];
   events: CalendarEvent[];
   tasks: Task[];
   goals: Goal[];
   filters: CalendarFilterState;
   onSelectItem: (item: CalendarSelectedItem) => void;
-  onQuickAdd: (dateStr: string) => void;
+  onQuickAdd: (dateStr: string, timeStr?: string) => void;
   onToggleTask: (taskId: string) => void;
-  onMoveItem: (type: 'event' | 'task', id: string, targetDateStr: string) => void;
+  onMoveItem: (type: 'task' | 'event', id: string, targetDateStr: string, targetTimeStr?: string) => void;
 }
 
 export const MonthView: React.FC<MonthViewProps> = ({

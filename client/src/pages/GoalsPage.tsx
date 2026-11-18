@@ -31,7 +31,6 @@ import {
   getStartAndEndOfMonth,
   getStartAndEndOfYear,
   getNextPeriodDates,
-  getTodayLocalDateString,
 } from '../utils/date';
 
 type GoalViewMode = 'tree' | 'cards';
@@ -213,13 +212,13 @@ export const GoalsPage: React.FC = () => {
   // Roll to Next Period Handler
   const handleRollToNextPeriod = async (g: Goal) => {
     try {
-      const nextDates = getNextPeriodDates(g.type, new Date(g.endDate));
+      const nextDates = getNextPeriodDates(g.type, g.startDate, g.endDate);
       const nextGoalData: CreateGoalInput = {
         title: `${g.title} (Kỳ tiếp theo)`,
         description: g.description,
         type: g.type,
-        startDate: nextDates.start.toISOString(),
-        endDate: nextDates.end.toISOString(),
+        startDate: nextDates.startStr,
+        endDate: nextDates.endStr,
         parentId: g.parentId,
         categoryId: g.categoryId,
         color: g.color,

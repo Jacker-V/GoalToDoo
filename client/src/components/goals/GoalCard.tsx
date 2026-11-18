@@ -20,8 +20,10 @@ interface GoalCardProps {
   categories?: Category[];
   onEdit: (goal: Goal) => void;
   onDelete: (goal: Goal) => void;
-  onPostpone: (goal: Goal) => void;
-  onUpdateNumericProgress: (goal: Goal, newValue: number) => void;
+  onPostpone?: (goal: Goal) => void;
+  onRollToNextPeriod?: (goal: Goal) => void;
+  onUpdateNumericProgress?: (goal: Goal, newValue: number) => void;
+  onUpdateProgress?: (id: string, val: number) => void;
 }
 
 export const GoalCard: React.FC<GoalCardProps> = ({
@@ -30,7 +32,9 @@ export const GoalCard: React.FC<GoalCardProps> = ({
   onEdit,
   onDelete,
   onPostpone,
+  onRollToNextPeriod,
   onUpdateNumericProgress,
+  onUpdateProgress,
 }) => {
   const [showMenu, setShowMenu] = useState(false);
 
@@ -128,7 +132,11 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                   <button
                     onClick={() => {
                       setShowMenu(false);
-                      onPostpone(goal);
+                      if (onRollToNextPeriod) {
+                        onRollToNextPeriod(goal);
+                      } else if (onPostpone) {
+                        onPostpone(goal);
+                      }
                     }}
                     className="w-full px-3 py-2 flex items-center space-x-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40"
                   >
@@ -225,7 +233,13 @@ export const GoalCard: React.FC<GoalCardProps> = ({
               <span className="text-[11px] text-slate-400">Cập nhật nhanh:</span>
               <NumericGoalControls
                 goal={goal}
-                onUpdateValue={onUpdateNumericProgress}
+                onUpdateValue={(g, val) => {
+                  if (onUpdateNumericProgress) {
+                    onUpdateNumericProgress(g, val);
+                  } else if (onUpdateProgress) {
+                    onUpdateProgress(g._id, val);
+                  }
+                }}
               />
             </div>
           )}

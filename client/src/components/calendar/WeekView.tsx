@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  Clock,
   CheckSquare,
   Square,
   Target,
@@ -16,6 +15,7 @@ import type { CalendarFilterState } from '../../types/calendar';
 import type { CalendarSelectedItem } from './CalendarItemDetailModal';
 
 interface WeekViewProps {
+  currentDate?: Date;
   days: CalendarDayInfo[]; // 7 days (Mon-Sun)
   events: CalendarEvent[];
   tasks: Task[];
@@ -24,7 +24,7 @@ interface WeekViewProps {
   onSelectItem: (item: CalendarSelectedItem) => void;
   onQuickAdd: (dateStr: string, timeStr?: string) => void;
   onToggleTask: (taskId: string) => void;
-  onMoveItem: (type: 'event' | 'task', id: string, targetDateStr: string, targetTimeStr?: string) => void;
+  onMoveItem: (type: 'task' | 'event', id: string, targetDateStr: string, targetTimeStr?: string) => void;
 }
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
@@ -326,8 +326,6 @@ export const WeekView: React.FC<WeekViewProps> = ({
                   const e = new Date(event.end);
                   const startHour = s.getHours();
                   const startMin = s.getMinutes();
-                  const endHour = e.getHours();
-                  const endMin = e.getMinutes();
 
                   const top = (startHour + startMin / 60) * HOUR_HEIGHT;
                   const durationHours = Math.max(

@@ -2,14 +2,14 @@ import { create } from 'zustand';
 
 export interface ToastMessage {
   id: string;
-  type: 'success' | 'error' | 'info';
+  type: 'success' | 'error' | 'info' | 'warning';
   title?: string;
   message: string;
 }
 
 interface ToastState {
   toasts: ToastMessage[];
-  addToast: (type: 'success' | 'error' | 'info', message: string, title?: string) => void;
+  addToast: (type: 'success' | 'error' | 'info' | 'warning', message: string, title?: string) => void;
   removeToast: (id: string) => void;
 }
 
@@ -41,4 +41,6 @@ export const toast = {
     useToastStore.getState().addToast('error', message, title),
   info: (message: string, title?: string) =>
     useToastStore.getState().addToast('info', message, title),
+  warning: (message: string, title?: string) =>
+    useToastStore.getState().addToast('warning', message, title),
 };

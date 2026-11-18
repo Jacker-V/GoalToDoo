@@ -9,6 +9,7 @@ export interface ModalProps {
   description?: string;
   children: React.ReactNode;
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -17,7 +18,8 @@ export const Modal: React.FC<ModalProps> = ({
   title,
   description,
   children,
-  maxWidth = 'lg',
+  maxWidth,
+  size,
 }) => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -39,6 +41,8 @@ export const Modal: React.FC<ModalProps> = ({
     '2xl': 'max-w-2xl',
   };
 
+  const effectiveSize = size || maxWidth || 'lg';
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Backdrop */}
@@ -52,7 +56,7 @@ export const Modal: React.FC<ModalProps> = ({
         <div
           className={twMerge(
             'relative w-full rounded-2xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 p-6 text-left transition-all max-h-[90vh] flex flex-col',
-            maxWidths[maxWidth]
+            maxWidths[effectiveSize]
           )}
           onClick={(e) => e.stopPropagation()}
         >

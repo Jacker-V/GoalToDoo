@@ -17,17 +17,20 @@ import {
 } from 'lucide-react';
 import type { GoalTreeNode, Goal } from '../../types/goal';
 import type { Task } from '../../types/task';
+import type { Category } from '../../types/category';
 import { ProgressBar } from '../ui/ProgressBar';
 import { NumericGoalControls } from './NumericGoalControls';
 import { formatDateVi } from '../../utils/date';
 
 interface GoalTreeViewProps {
   tree: GoalTreeNode[];
+  categories?: Category[];
   onEditGoal: (goal: Goal) => void;
   onDeleteGoal: (goal: Goal) => void;
-  onAddChildGoal: (parentGoal: Goal) => void;
+  onAddChildGoal?: (parentGoal: Goal) => void;
   onToggleTask: (task: Task) => void;
   onUpdateNumericProgress?: (goal: Goal, newValue: number) => void;
+  onUpdateProgress?: (id: string, val: number) => void;
 }
 
 const TreeNodeItem: React.FC<{
@@ -36,7 +39,7 @@ const TreeNodeItem: React.FC<{
   forceExpandAll?: boolean | null;
   onEditGoal: (goal: Goal) => void;
   onDeleteGoal: (goal: Goal) => void;
-  onAddChildGoal: (parentGoal: Goal) => void;
+  onAddChildGoal?: (parentGoal: Goal) => void;
   onToggleTask: (task: Task) => void;
   onUpdateNumericProgress?: (goal: Goal, newValue: number) => void;
 }> = ({
@@ -152,13 +155,15 @@ const TreeNodeItem: React.FC<{
 
           {/* Quick Actions */}
           <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
-              onClick={() => onAddChildGoal(node)}
-              className="p-1.5 rounded-lg text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 transition-colors"
-              title="Thêm mục tiêu con"
-            >
-              <Plus className="w-3.5 h-3.5" />
-            </button>
+            {onAddChildGoal && (
+              <button
+                onClick={() => onAddChildGoal(node)}
+                className="p-1.5 rounded-lg text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 transition-colors"
+                title="Thêm mục tiêu con"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+            )}
             <button
               onClick={() => onEditGoal(node)}
               className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -282,8 +287,13 @@ export const GoalTreeView: React.FC<GoalTreeViewProps> = ({
   onAddChildGoal,
   onToggleTask,
   onUpdateNumericProgress,
+  onUpdateProgress,
 }) => {
   const [expandAllState, setExpandAllState] = useState<boolean | null>(null);
+
+  const handleUpdateNumericProgress =
+    onUpdateNumericProgress ||
+    (onUpdateProgress ? (goal: Goal, val: number) => onUpdateProgress(goal._id, val) : undefined);
 
   if (tree.length === 0) {
     return (
@@ -333,7 +343,7 @@ export const GoalTreeView: React.FC<GoalTreeViewProps> = ({
             onDeleteGoal={onDeleteGoal}
             onAddChildGoal={onAddChildGoal}
             onToggleTask={onToggleTask}
-            onUpdateNumericProgress={onUpdateNumericProgress}
+            onUpdateNumericProgress={handleUpdateNumericProgress}
           />
         ))}
       </div>

@@ -34,9 +34,13 @@ export const LoginPage: React.FC = () => {
   });
 
   const onSubmit = async (values: LoginFormValues) => {
+    if (!values.email || !values.password) return;
     setServerError(null);
     try {
-      const data = await authService.login(values);
+      const data = await authService.login({
+        email: values.email,
+        password: values.password,
+      });
       setAuth(data.user, data.accessToken, data.refreshToken);
       navigate(from, { replace: true });
     } catch (err: any) {

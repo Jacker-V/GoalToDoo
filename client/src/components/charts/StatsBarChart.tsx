@@ -103,7 +103,6 @@ export const StatsBarChart: React.FC<StatsBarChartProps> = ({
   }, [mode, selectedMonth, dailyCounts, year, language, dayOfWeekLabels, shortDayLabels, monthLabels]);
 
   const maxVal = Math.max(...chartData.map((d) => d.count), 5);
-  const totalCount = chartData.reduce((sum, d) => sum + d.count, 0);
 
   return (
     <div

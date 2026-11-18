@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Target, Calendar, Palette, Layers, Award } from 'lucide-react';
+import { Calendar, Palette, Layers, Award } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';

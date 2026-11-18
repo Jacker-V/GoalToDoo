@@ -3,7 +3,6 @@ import {
   Calendar as CalendarIcon,
   Clock,
   CheckCircle2,
-  AlertCircle,
   Tag,
   Target,
   Edit2,

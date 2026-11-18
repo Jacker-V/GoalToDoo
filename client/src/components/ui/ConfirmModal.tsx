@@ -8,9 +8,12 @@ export interface ConfirmModalProps {
   onClose: () => void;
   onConfirm: () => void;
   title: string;
-  message: string;
+  message?: string;
+  description?: string;
   confirmLabel?: string;
+  confirmText?: string;
   cancelLabel?: string;
+  cancelText?: string;
   isLoading?: boolean;
   variant?: 'danger' | 'warning' | 'primary';
 }
@@ -21,11 +24,18 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   onConfirm,
   title,
   message,
-  confirmLabel = 'Xác nhận xóa',
-  cancelLabel = 'Hủy bỏ',
+  description,
+  confirmLabel,
+  confirmText,
+  cancelLabel,
+  cancelText,
   isLoading = false,
   variant = 'danger',
 }) => {
+  const displayMessage = message || description || '';
+  const displayConfirmLabel = confirmLabel || confirmText || 'Xác nhận xóa';
+  const displayCancelLabel = cancelLabel || cancelText || 'Hủy bỏ';
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title} maxWidth="md">
       <div className="space-y-4">
@@ -33,12 +43,12 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
           <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400 flex items-center justify-center flex-shrink-0">
             <AlertTriangle className="w-5 h-5" />
           </div>
-          <p className="text-sm leading-relaxed">{message}</p>
+          <p className="text-sm leading-relaxed">{displayMessage}</p>
         </div>
 
         <div className="flex justify-end space-x-3 pt-3 border-t border-slate-100 dark:border-slate-800">
           <Button variant="outline" size="sm" onClick={onClose} disabled={isLoading}>
-            {cancelLabel}
+            {displayCancelLabel}
           </Button>
           <Button
             variant={variant === 'danger' ? 'danger' : 'primary'}
@@ -46,7 +56,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             onClick={onConfirm}
             isLoading={isLoading}
           >
-            {confirmLabel}
+            {displayConfirmLabel}
           </Button>
         </div>
       </div>

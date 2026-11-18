@@ -297,13 +297,15 @@ export const CalendarPage: React.FC = () => {
   };
 
   const handleMoveItem = async (
-    item: CalendarSelectedItem,
+    type: 'task' | 'event',
+    id: string,
     newDateStr: string,
     newStartTime?: string
   ) => {
     try {
-      if (item.type === 'event') {
-        const ev = item.raw as CalendarEvent;
+      if (type === 'event') {
+        const ev = calendarData.events.find((e) => e._id === id || e.originalId === id);
+        if (!ev) return;
         const origStart = new Date(ev.start);
         const origEnd = new Date(ev.end);
         const duration = origEnd.getTime() - origStart.getTime();
@@ -328,8 +330,9 @@ export const CalendarPage: React.FC = () => {
           },
         });
         toast.success('Đã cập nhật thời gian sự kiện');
-      } else if (item.type === 'task') {
-        const t = item.raw as Task;
+      } else if (type === 'task') {
+        const t = calendarData.tasks.find((task) => task._id === id);
+        if (!t) return;
         const [y, m, d] = newDateStr.split('-').map(Number);
         const nextDue = new Date(y, m - 1, d);
         nextDue.setHours(23, 59, 59, 999);

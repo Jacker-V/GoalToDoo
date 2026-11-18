@@ -6,7 +6,6 @@ import {
   AlertTriangle,
   Flame,
   ArrowRight,
-  Plus,
   CheckCircle2,
   Clock,
   Sparkles,
@@ -749,7 +748,7 @@ export const DashboardPage: React.FC = () => {
                       </span>
                     </div>
                     <span className="text-[10px] text-slate-400 flex-shrink-0">
-                      {ev.isAllDay ? t('calendar.allDay') : `${ev.startTime || ''}`}
+                      {ev.allDay ? t('calendar.allDay') : format(new Date(ev.start), 'HH:mm')}
                     </span>
                   </div>
                 ))}

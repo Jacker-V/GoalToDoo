@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
+import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
 import { useToastStore } from '../../store/useToastStore';
 
 export const ToastContainer: React.FC = () => {
@@ -12,6 +12,7 @@ export const ToastContainer: React.FC = () => {
       {toasts.map((t) => {
         const isSuccess = t.type === 'success';
         const isError = t.type === 'error';
+        const isWarning = t.type === 'warning';
 
         return (
           <div
@@ -21,13 +22,16 @@ export const ToastContainer: React.FC = () => {
                 ? 'bg-emerald-50 dark:bg-emerald-950/90 border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-100'
                 : isError
                 ? 'bg-rose-50 dark:bg-rose-950/90 border-rose-200 dark:border-rose-800 text-rose-900 dark:text-rose-100'
+                : isWarning
+                ? 'bg-amber-50 dark:bg-amber-950/90 border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-100'
                 : 'bg-indigo-50 dark:bg-indigo-950/90 border-indigo-200 dark:border-indigo-800 text-indigo-900 dark:text-indigo-100'
             }`}
           >
             <div className="flex-shrink-0 mr-3 mt-0.5">
               {isSuccess && <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />}
               {isError && <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-400" />}
-              {!isSuccess && !isError && <Info className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />}
+              {isWarning && <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />}
+              {!isSuccess && !isError && !isWarning && <Info className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />}
             </div>
 
             <div className="flex-1 text-sm">
