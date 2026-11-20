@@ -33,6 +33,9 @@ export const createTaskSchema = z.object({
   recurrence: recurrenceSchema.optional(),
   order: z.number().optional(),
   weight: z.number().min(0).optional(),
+  source: z.enum(['user', 'system']).optional(),
+  linkedModule: z.enum(['none', 'learn']).optional(),
+  metadata: z.record(z.any()).optional(),
 });
 
 export const updateTaskSchema = z.object({
@@ -48,6 +51,9 @@ export const updateTaskSchema = z.object({
   recurrence: recurrenceSchema.optional(),
   order: z.number().optional(),
   weight: z.number().min(0).optional(),
+  source: z.enum(['user', 'system']).optional(),
+  linkedModule: z.enum(['none', 'learn']).optional(),
+  metadata: z.record(z.any()).optional(),
 });
 
 export const completeRecurringQuerySchema = z.object({

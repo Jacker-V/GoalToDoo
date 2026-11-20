@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Check,
   Calendar,
@@ -13,12 +14,14 @@ import {
   Tag,
   Target,
   CheckSquare,
+  GraduationCap,
 } from 'lucide-react';
 import type { Task, Subtask } from '../../types/task';
 import type { Goal } from '../../types/goal';
 import { Badge } from '../ui/Badge';
 import { ProgressBar } from '../ui/ProgressBar';
 import { formatDateVi } from '../../utils/date';
+import { useI18n } from '../../i18n';
 
 interface TaskItemProps {
   task: Task;
@@ -39,10 +42,12 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   onEdit,
   onDelete,
 }) => {
+  const { t } = useI18n();
   const [showSubtasks, setShowSubtasks] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
 
   const isRecurring = task.recurrence && task.recurrence.type !== 'none';
+  const isLearnSystemTask = task.source === 'system' && task.linkedModule === 'learn';
   const hasSubtasks = Array.isArray(task.subtasks) && task.subtasks.length > 0;
   const completedSubtasksCount = hasSubtasks ? task.subtasks.filter((s) => s.done).length : 0;
   const subtasksPercent = hasSubtasks
@@ -133,7 +138,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                       className="w-full px-3 py-2 flex items-center space-x-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/60"
                     >
                       <Edit2 className="w-3.5 h-3.5 text-indigo-500" />
-                      <span>Chỉnh sửa</span>
+                      <span>{t('common.edit')}</span>
                     </button>
                     <button
                       onClick={() => {
@@ -143,7 +148,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                       className="w-full px-3 py-2 flex items-center space-x-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
-                      <span>Xóa task</span>
+                      <span>{t('common.delete')}</span>
                     </button>
                   </div>
                 </>
@@ -166,6 +171,28 @@ export const TaskItem: React.FC<TaskItemProps> = ({
 
           {/* Meta Badges */}
           <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
+            {/* Learn System Task Badge & Quick Action */}
+            {isLearnSystemTask && (
+              <>
+                <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                  <GraduationCap className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 mr-0.5" />
+                  <span>{t('tasks.learnBadge')}</span>
+                  {task.metadata?.targetCount !== undefined && (
+                    <span className="ml-1 text-emerald-700 dark:text-emerald-300 font-bold">
+                      ({task.metadata.completedCount || 0}/{task.metadata.targetCount})
+                    </span>
+                  )}
+                </span>
+                <Link
+                  to="/learn/review"
+                  className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm transition-all"
+                >
+                  <GraduationCap className="w-3 h-3 mr-0.5" />
+                  <span>{t('tasks.reviewNow')}</span>
+                </Link>
+              </>
+            )}
+
             {/* Priority Badge */}
             {task.priority === 'high' && (
               <Badge variant="danger" size="sm">

@@ -3,6 +3,7 @@ import { Task } from '../models/task.model.js';
 import { TaskCompletion } from '../models/taskCompletion.model.js';
 import { Category } from '../models/category.model.js';
 import { ProgressLog } from '../models/progressLog.model.js';
+import { ReviewLog } from '../modules/learn/models/index.js';
 import { AppError, sendSuccess } from '../utils/response.js';
 import { calculateStreak, calculateLongestStreak } from '../utils/streak.js';
 
@@ -213,12 +214,12 @@ export const getStatsSummary = async (req, res, next) => {
       totalCompletedTasks > 0 ? Math.round((onTimeCount / totalCompletedTasks) * 100) : 100;
 
     // 5. Streaks (current streak & longest streak)
-    const allTaskCompletions = await TaskCompletion.find({ userId }).select('date');
+    const allTaskCompletions = await TaskCompletion.find({ userId }).select('date').lean();
     const allCompletedTasks = await Task.find({
       userId,
       isCompleted: true,
       ...nonRecurringFilter,
-    }).select('completedAt updatedAt');
+    }).select('completedAt updatedAt').lean();
 
     const completionDates = new Set();
     for (const tc of allTaskCompletions) {
@@ -228,6 +229,14 @@ export const getStatsSummary = async (req, res, next) => {
       const d = t.completedAt || t.updatedAt;
       if (d) {
         const ds = formatDateString(d);
+        if (ds) completionDates.add(ds);
+      }
+    }
+
+    const allReviewLogs = await ReviewLog.find({ userId }).select('reviewedAt').lean();
+    for (const r of allReviewLogs) {
+      if (r.reviewedAt) {
+        const ds = formatDateString(r.reviewedAt);
         if (ds) completionDates.add(ds);
       }
     }
@@ -319,6 +328,21 @@ export const getStatsHeatmap = async (req, res, next) => {
       const d = t.completedAt || t.updatedAt;
       if (d) {
         const dateStr = formatDateString(d);
+        if (dateStr.startsWith(`${yearNum}-`)) {
+          countsMap[dateStr] = (countsMap[dateStr] || 0) + 1;
+        }
+      }
+    }
+
+    // Flashcard reviews from Learn module
+    const reviewLogs = await ReviewLog.find({
+      userId,
+      reviewedAt: { $gte: startOfYear, $lte: endOfYear },
+    }).select('reviewedAt');
+
+    for (const r of reviewLogs) {
+      if (r.reviewedAt) {
+        const dateStr = formatDateString(r.reviewedAt);
         if (dateStr.startsWith(`${yearNum}-`)) {
           countsMap[dateStr] = (countsMap[dateStr] || 0) + 1;
         }

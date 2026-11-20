@@ -8,6 +8,10 @@ import { TasksPage } from './pages/TasksPage';
 import { GoalsPage } from './pages/GoalsPage';
 import { CalendarPage } from './pages/CalendarPage';
 import { InsightsPage } from './pages/InsightsPage';
+import { LearnDecksPage } from './features/learn/pages/LearnDecksPage';
+import { LearnCardsPage } from './features/learn/pages/LearnCardsPage';
+import { LearnReviewPage } from './features/learn/pages/LearnReviewPage';
+import { LearnChatPage } from './features/learn/pages/LearnChatPage';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 import { PublicRoute } from './components/common/PublicRoute';
 import { AppLayout } from './components/layout/AppLayout';
@@ -81,6 +85,13 @@ export const App: React.FC = () => {
               <Route path="/tasks" element={<TasksPage />} />
               <Route path="/calendar" element={<CalendarPage />} />
               <Route path="/insights" element={<InsightsPage />} />
+              <Route path="/learn" element={<Navigate to="/learn/decks" replace />} />
+              <Route path="/learn/decks" element={<LearnDecksPage />} />
+              <Route path="/learn/cards" element={<LearnCardsPage />} />
+              <Route path="/learn/review" element={<LearnReviewPage />} />
+              <Route path="/learn/review/:deckId" element={<LearnReviewPage />} />
+              <Route path="/learn/chat" element={<LearnChatPage />} />
+              <Route path="/chat" element={<Navigate to="/learn/chat" replace />} />
             </Route>
           </Route>
 

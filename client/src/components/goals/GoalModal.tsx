@@ -9,6 +9,7 @@ import type {
   GoalType,
   GoalPriority,
   GoalProgressMode,
+  GoalLinkedMetric,
 } from '../../types/goal';
 import type { Category } from '../../types/category';
 import { formatLocalDate } from '../../utils/date';
@@ -39,7 +40,7 @@ export const GoalModal: React.FC<GoalModalProps> = ({
   initialEndDate,
   isLoading = false,
 }) => {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [type, setType] = useState<GoalType>('custom');
@@ -50,6 +51,7 @@ export const GoalModal: React.FC<GoalModalProps> = ({
   const [color, setColor] = useState('#6366f1');
   const [priority, setPriority] = useState<GoalPriority>('medium');
   const [progressMode, setProgressMode] = useState<GoalProgressMode>('auto');
+  const [linkedMetric, setLinkedMetric] = useState<GoalLinkedMetric>('none');
   const [targetValue, setTargetValue] = useState(100);
   const [currentValue, setCurrentValue] = useState(0);
   const [unit, setUnit] = useState('');
@@ -79,6 +81,7 @@ export const GoalModal: React.FC<GoalModalProps> = ({
       setColor(goal.color || '#6366f1');
       setPriority(goal.priority || 'medium');
       setProgressMode(goal.progressMode || 'auto');
+      setLinkedMetric(goal.linkedMetric || 'none');
       setTargetValue(goal.targetValue ?? 100);
       setCurrentValue(goal.currentValue ?? 0);
       setUnit(goal.unit || '');
@@ -94,6 +97,7 @@ export const GoalModal: React.FC<GoalModalProps> = ({
       setColor('#6366f1');
       setPriority('medium');
       setProgressMode('auto');
+      setLinkedMetric('none');
       setTargetValue(100);
       setCurrentValue(0);
       setUnit('');
@@ -135,6 +139,7 @@ export const GoalModal: React.FC<GoalModalProps> = ({
       color,
       priority,
       progressMode,
+      linkedMetric: progressMode === 'numeric' ? linkedMetric : 'none',
       targetValue: progressMode === 'numeric' ? Number(targetValue) : 100,
       currentValue: progressMode === 'numeric' ? Number(currentValue) : 0,
       unit: progressMode === 'numeric' ? unit.trim() : '',
@@ -332,44 +337,72 @@ export const GoalModal: React.FC<GoalModalProps> = ({
               {t('goals.modal.modeAutoHelp')}
             </p>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+            <div className="space-y-2.5 pt-1">
               <div>
                 <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
-                  {t('goals.modal.targetValue')}
+                  {t('goals.modal.linkedMetric')}
                 </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={targetValue}
-                  onChange={(e) => setTargetValue(Number(e.target.value))}
+                <select
+                  value={linkedMetric}
+                  onChange={(e) => {
+                    const nextMetric = e.target.value as GoalLinkedMetric;
+                    setLinkedMetric(nextMetric);
+                    if (nextMetric === 'cards_added') {
+                      setUnit(language === 'en' ? 'words' : 'từ');
+                    } else if (nextMetric === 'cards_mastered') {
+                      setUnit(language === 'en' ? 'mastered words' : 'từ đã thuộc');
+                    } else if (nextMetric === 'review_sessions') {
+                      setUnit(language === 'en' ? 'review days' : 'ngày ôn');
+                    }
+                  }}
                   className="w-full px-2.5 py-1.5 rounded-lg border text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
+                >
+                  <option value="none">{t('goals.modal.linkedMetricOptions.none')}</option>
+                  <option value="cards_added">{t('goals.modal.linkedMetricOptions.cards_added')}</option>
+                  <option value="cards_mastered">{t('goals.modal.linkedMetricOptions.cards_mastered')}</option>
+                  <option value="review_sessions">{t('goals.modal.linkedMetricOptions.review_sessions')}</option>
+                </select>
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
-                  {t('goals.modal.currentValue')}
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={currentValue}
-                  onChange={(e) => setCurrentValue(Number(e.target.value))}
-                  className="w-full px-2.5 py-1.5 rounded-lg border text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                    {t('goals.modal.targetValue')}
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={targetValue}
+                    onChange={(e) => setTargetValue(Number(e.target.value))}
+                    className="w-full px-2.5 py-1.5 rounded-lg border text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
-                  {t('goals.modal.unit')}
-                </label>
-                <input
-                  type="text"
-                  placeholder={t('goals.modal.unitPlaceholder')}
-                  value={unit}
-                  onChange={(e) => setUnit(e.target.value)}
-                  className="w-full px-2.5 py-1.5 rounded-lg border text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                    {t('goals.modal.currentValue')}
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={currentValue}
+                    onChange={(e) => setCurrentValue(Number(e.target.value))}
+                    className="w-full px-2.5 py-1.5 rounded-lg border text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                    {t('goals.modal.unit')}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder={t('goals.modal.unitPlaceholder')}
+                    value={unit}
+                    onChange={(e) => setUnit(e.target.value)}
+                    className="w-full px-2.5 py-1.5 rounded-lg border text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
               </div>
             </div>
           )}

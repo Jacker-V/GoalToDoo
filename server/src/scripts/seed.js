@@ -7,6 +7,7 @@ import { Task } from '../models/task.model.js';
 import { Event } from '../models/event.model.js';
 import { ProgressLog } from '../models/progressLog.model.js';
 import { TaskCompletion } from '../models/taskCompletion.model.js';
+import { Deck, Card, ReviewLog, Conversation, Message, AiUsage } from '../modules/learn/models/index.js';
 import { recalculateGoalProgress } from '../services/progress.service.js';
 
 const DEMO_EMAIL = 'demo@goalcalendar.com';
@@ -39,6 +40,12 @@ export async function runSeed(mongoUri = env.MONGODB_URI) {
         Event.deleteMany({ userId: existingUser._id }),
         ProgressLog.deleteMany({ userId: existingUser._id }),
         TaskCompletion.deleteMany({ userId: existingUser._id }),
+        Deck.deleteMany({ userId: existingUser._id }),
+        Card.deleteMany({ userId: existingUser._id }),
+        ReviewLog.deleteMany({ userId: existingUser._id }),
+        Conversation.deleteMany({ userId: existingUser._id }),
+        Message.deleteMany({ userId: existingUser._id }),
+        AiUsage.deleteMany({ userId: existingUser._id }),
         User.deleteOne({ _id: existingUser._id }),
       ]);
       console.log('[Seed] Previous data cleaned.');
@@ -631,14 +638,495 @@ export async function runSeed(mongoUri = env.MONGODB_URI) {
     // 11. Run progress recalculation for weekly, monthly, and yearly auto goals
     await recalculateGoalProgress(weeklyGoal1._id, user._id, 'Initial seed calculation');
 
+    // 12. Seed Flashcard Decks & Vocabulary Cards (Module LEARN)
+    const oxfordDeck = await Deck.create({
+      userId: user._id,
+      name: 'Oxford 3000 Cơ bản',
+      color: '#3b82f6',
+      description: 'Từ vựng tiếng Anh giao tiếp thông dụng hàng ngày',
+    });
+
+    const ieltsDeck = await Deck.create({
+      userId: user._id,
+      name: 'IELTS Academic',
+      color: '#8b5cf6',
+      description: 'Từ vựng học thuật nâng cao cho bài thi IELTS Writing & Reading',
+    });
+
+    const pastDueDate = new Date(Date.now() - 2 * 3600 * 1000); // 2 hours ago (due)
+    const futureDueDate = new Date(Date.now() + 5 * 86400 * 1000); // 5 days later
+
+    const sampleCards = [
+      // Deck 1: Oxford 3000
+      {
+        userId: user._id,
+        deckId: oxfordDeck._id,
+        word: 'accomplish',
+        meaning: 'hoàn thành, đạt được mục tiêu',
+        partOfSpeech: 'verb',
+        example: 'She accomplished her lifelong goal of running a marathon.',
+        note: 'Đồng nghĩa: achieve, complete',
+        source: 'Oxford Word Skills',
+        tags: ['oxford', 'verb', 'common'],
+        srs: {
+          easeFactor: 2.5,
+          intervalDays: 25,
+          repetitions: 4,
+          lapses: 0,
+          dueDate: futureDueDate,
+          lastReviewedAt: now,
+          status: 'review',
+        },
+      },
+      {
+        userId: user._id,
+        deckId: oxfordDeck._id,
+        word: 'accurate',
+        meaning: 'chính xác, đúng đắn, không có sai sót',
+        partOfSpeech: 'adjective',
+        example: 'The accurate calculation helped us save a lot of money.',
+        note: 'Trái nghĩa: inaccurate',
+        source: 'Oxford Word Skills',
+        tags: ['oxford', 'adjective'],
+        srs: {
+          easeFactor: 2.4,
+          intervalDays: 1,
+          repetitions: 1,
+          lapses: 0,
+          dueDate: pastDueDate,
+          lastReviewedAt: new Date(Date.now() - 86400 * 1000),
+          status: 'learning',
+        },
+      },
+      {
+        userId: user._id,
+        deckId: oxfordDeck._id,
+        word: 'adapt',
+        meaning: 'thích nghi, quen thuộc với hoàn cảnh mới',
+        partOfSpeech: 'verb',
+        example: 'It took him several months to adapt to living abroad.',
+        note: 'Đi kèm giới từ to: adapt to sth',
+        source: 'Oxford Word Skills',
+        tags: ['oxford', 'verb'],
+        srs: {
+          easeFactor: 2.5,
+          intervalDays: 0,
+          repetitions: 0,
+          lapses: 0,
+          dueDate: now,
+          lastReviewedAt: null,
+          status: 'new',
+        },
+      },
+      {
+        userId: user._id,
+        deckId: oxfordDeck._id,
+        word: 'benefit',
+        meaning: 'lợi ích, thuận lợi / mang lại lợi ích',
+        partOfSpeech: 'noun',
+        example: 'Regular exercise offers countless physical and mental benefits.',
+        note: 'Dạng tính từ: beneficial',
+        source: 'Oxford 3000',
+        tags: ['oxford', 'noun'],
+        srs: {
+          easeFactor: 2.6,
+          intervalDays: 30,
+          repetitions: 5,
+          lapses: 0,
+          dueDate: futureDueDate,
+          lastReviewedAt: now,
+          status: 'review',
+        },
+      },
+      {
+        userId: user._id,
+        deckId: oxfordDeck._id,
+        word: 'crucial',
+        meaning: 'cực kỳ quan trọng, quyết định',
+        partOfSpeech: 'adjective',
+        example: 'Sound sleep is crucial for maintaining overall cognitive function.',
+        note: 'Đồng nghĩa: essential, vital',
+        source: 'Oxford 3000',
+        tags: ['oxford', 'adjective'],
+        srs: {
+          easeFactor: 2.5,
+          intervalDays: 2,
+          repetitions: 1,
+          lapses: 0,
+          dueDate: pastDueDate,
+          lastReviewedAt: new Date(Date.now() - 2 * 86400 * 1000),
+          status: 'learning',
+        },
+      },
+      {
+        userId: user._id,
+        deckId: oxfordDeck._id,
+        word: 'diversity',
+        meaning: 'sự đa dạng, phong phú',
+        partOfSpeech: 'noun',
+        example: 'Our company actively embraces and promotes cultural diversity.',
+        note: 'Tính từ: diverse',
+        source: 'Oxford 3000',
+        tags: ['oxford', 'noun'],
+        srs: {
+          easeFactor: 2.5,
+          intervalDays: 0,
+          repetitions: 0,
+          lapses: 0,
+          dueDate: now,
+          lastReviewedAt: null,
+          status: 'new',
+        },
+      },
+      {
+        userId: user._id,
+        deckId: oxfordDeck._id,
+        word: 'enhance',
+        meaning: 'nâng cao, gia tăng chất lượng hoặc giá trị',
+        partOfSpeech: 'verb',
+        example: 'Listening to English podcasts will quickly enhance your pronunciation.',
+        note: 'Đồng nghĩa: improve, boost',
+        source: 'Oxford 3000',
+        tags: ['oxford', 'verb'],
+        srs: {
+          easeFactor: 2.5,
+          intervalDays: 1,
+          repetitions: 1,
+          lapses: 0,
+          dueDate: pastDueDate,
+          lastReviewedAt: new Date(Date.now() - 86400 * 1000),
+          status: 'learning',
+        },
+      },
+      {
+        userId: user._id,
+        deckId: oxfordDeck._id,
+        word: 'frequent',
+        meaning: 'thường xuyên, hay xảy ra',
+        partOfSpeech: 'adjective',
+        example: 'He is a frequent passenger on the early morning express train.',
+        note: 'Trạng từ: frequently',
+        source: 'Oxford 3000',
+        tags: ['oxford', 'adjective'],
+        srs: {
+          easeFactor: 2.5,
+          intervalDays: 0,
+          repetitions: 0,
+          lapses: 0,
+          dueDate: now,
+          lastReviewedAt: null,
+          status: 'new',
+        },
+      },
+      {
+        userId: user._id,
+        deckId: oxfordDeck._id,
+        word: 'generate',
+        meaning: 'tạo ra, sản sinh ra (năng lượng, ý tưởng)',
+        partOfSpeech: 'verb',
+        example: 'The solar panels generate clean electricity for the whole campus.',
+        note: 'Danh từ: generation',
+        source: 'Oxford 3000',
+        tags: ['oxford', 'verb'],
+        srs: {
+          easeFactor: 2.5,
+          intervalDays: 22,
+          repetitions: 3,
+          lapses: 0,
+          dueDate: futureDueDate,
+          lastReviewedAt: now,
+          status: 'review',
+        },
+      },
+      {
+        userId: user._id,
+        deckId: oxfordDeck._id,
+        word: 'hesitate',
+        meaning: 'ngập ngừng, do dự',
+        partOfSpeech: 'verb',
+        example: 'Please do not hesitate to contact our customer support team.',
+        note: 'Danh từ: hesitation',
+        source: 'Oxford 3000',
+        tags: ['oxford', 'verb'],
+        srs: {
+          easeFactor: 2.5,
+          intervalDays: 0,
+          repetitions: 0,
+          lapses: 0,
+          dueDate: now,
+          lastReviewedAt: null,
+          status: 'suspended',
+        },
+      },
+
+      // Deck 2: IELTS Academic
+      {
+        userId: user._id,
+        deckId: ieltsDeck._id,
+        word: 'alleviate',
+        meaning: 'làm giảm bớt, xoa dịu (nỗi đau, áp lực, tắc đường)',
+        partOfSpeech: 'verb',
+        example: 'Urgent infrastructure investments are required to alleviate urban congestion.',
+        note: 'Đồng nghĩa: relieve, ease, mitigate',
+        source: 'Cambridge IELTS 17',
+        tags: ['ielts', 'writing-task-2'],
+        srs: {
+          easeFactor: 2.5,
+          intervalDays: 28,
+          repetitions: 4,
+          lapses: 0,
+          dueDate: futureDueDate,
+          lastReviewedAt: now,
+          status: 'review',
+        },
+      },
+      {
+        userId: user._id,
+        deckId: ieltsDeck._id,
+        word: 'coherent',
+        meaning: 'mạch lạc, chặt chẽ, dễ hiểu',
+        partOfSpeech: 'adjective',
+        example: 'A coherent essay structure is crucial for achieving Band 7+ in Writing.',
+        note: 'Danh từ: coherence',
+        source: 'Cambridge IELTS 16',
+        tags: ['ielts', 'academic'],
+        srs: {
+          easeFactor: 2.3,
+          intervalDays: 2,
+          repetitions: 1,
+          lapses: 0,
+          dueDate: pastDueDate,
+          lastReviewedAt: new Date(Date.now() - 2 * 86400 * 1000),
+          status: 'learning',
+        },
+      },
+      {
+        userId: user._id,
+        deckId: ieltsDeck._id,
+        word: 'deteriorate',
+        meaning: 'suy giảm, trở nên tồi tệ hơn theo thời gian',
+        partOfSpeech: 'verb',
+        example: 'Air quality in the city center has begun to deteriorate dramatically.',
+        note: 'Danh từ: deterioration',
+        source: 'IELTS Academic Vocab',
+        tags: ['ielts', 'verb'],
+        srs: {
+          easeFactor: 2.5,
+          intervalDays: 0,
+          repetitions: 0,
+          lapses: 0,
+          dueDate: now,
+          lastReviewedAt: null,
+          status: 'new',
+        },
+      },
+      {
+        userId: user._id,
+        deckId: ieltsDeck._id,
+        word: 'eloquent',
+        meaning: 'hùng biện, có tài ăn nói lưu loát và thuyết phục',
+        partOfSpeech: 'adjective',
+        example: 'She delivered an eloquent defense of environmental conservation.',
+        note: 'Trạng từ: eloquently',
+        source: 'IELTS Speaking Master',
+        tags: ['ielts', 'speaking'],
+        srs: {
+          easeFactor: 2.5,
+          intervalDays: 24,
+          repetitions: 3,
+          lapses: 0,
+          dueDate: futureDueDate,
+          lastReviewedAt: now,
+          status: 'review',
+        },
+      },
+      {
+        userId: user._id,
+        deckId: ieltsDeck._id,
+        word: 'feasible',
+        meaning: 'khả thi, có thể thực hiện thành công',
+        partOfSpeech: 'adjective',
+        example: 'Transitioning completely to renewable energy is technically feasible.',
+        note: 'Danh từ: feasibility',
+        source: 'Cambridge IELTS 15',
+        tags: ['ielts', 'adjective'],
+        srs: {
+          easeFactor: 2.4,
+          intervalDays: 1,
+          repetitions: 1,
+          lapses: 0,
+          dueDate: pastDueDate,
+          lastReviewedAt: new Date(Date.now() - 86400 * 1000),
+          status: 'learning',
+        },
+      },
+      {
+        userId: user._id,
+        deckId: ieltsDeck._id,
+        word: 'inevitable',
+        meaning: 'không thể tránh khỏi, tất yếu',
+        partOfSpeech: 'adjective',
+        example: 'Technological disruption has become an inevitable part of modern economies.',
+        note: 'Đồng nghĩa: unavoidable',
+        source: 'Cambridge IELTS 18',
+        tags: ['ielts', 'academic'],
+        srs: {
+          easeFactor: 2.5,
+          intervalDays: 0,
+          repetitions: 0,
+          lapses: 0,
+          dueDate: now,
+          lastReviewedAt: null,
+          status: 'new',
+        },
+      },
+      {
+        userId: user._id,
+        deckId: ieltsDeck._id,
+        word: 'meticulous',
+        meaning: 'tỉ mỉ, cẩn thận từng chi tiết nhỏ',
+        partOfSpeech: 'adjective',
+        example: 'Scientific research demands meticulous planning and precise documentation.',
+        note: 'Đồng nghĩa: painstaking, thorough',
+        source: 'Cambridge IELTS 17',
+        tags: ['ielts', 'academic'],
+        srs: {
+          easeFactor: 2.5,
+          intervalDays: 35,
+          repetitions: 5,
+          lapses: 0,
+          dueDate: futureDueDate,
+          lastReviewedAt: now,
+          status: 'review',
+        },
+      },
+      {
+        userId: user._id,
+        deckId: ieltsDeck._id,
+        word: 'prevalent',
+        meaning: 'phổ biến rộng rãi, thịnh hành',
+        partOfSpeech: 'adjective',
+        example: 'Remote work arrangements are increasingly prevalent across technology firms.',
+        note: 'Danh từ: prevalence',
+        source: 'IELTS Academic Vocab',
+        tags: ['ielts', 'academic'],
+        srs: {
+          easeFactor: 2.5,
+          intervalDays: 0,
+          repetitions: 0,
+          lapses: 0,
+          dueDate: now,
+          lastReviewedAt: null,
+          status: 'new',
+        },
+      },
+      {
+        userId: user._id,
+        deckId: ieltsDeck._id,
+        word: 'scrutinize',
+        meaning: 'xem xét kỹ lưỡng, kiểm tra cặn kẽ',
+        partOfSpeech: 'verb',
+        example: 'Financial regulators will scrutinize the acquisition deal thoroughly.',
+        note: 'Danh từ: scrutiny',
+        source: 'Cambridge IELTS 14',
+        tags: ['ielts', 'verb'],
+        srs: {
+          easeFactor: 2.4,
+          intervalDays: 2,
+          repetitions: 1,
+          lapses: 0,
+          dueDate: pastDueDate,
+          lastReviewedAt: new Date(Date.now() - 2 * 86400 * 1000),
+          status: 'learning',
+        },
+      },
+      {
+        userId: user._id,
+        deckId: ieltsDeck._id,
+        word: 'ubiquitous',
+        meaning: 'có mặt ở khắp nơi cùng lúc, nhan nhản',
+        partOfSpeech: 'adjective',
+        example: 'Mobile phones and high-speed internet have become ubiquitous in daily life.',
+        note: 'Đồng nghĩa: omnipresent, pervasive',
+        source: 'Cambridge IELTS 15',
+        tags: ['ielts', 'academic'],
+        srs: {
+          easeFactor: 2.6,
+          intervalDays: 45,
+          repetitions: 6,
+          lapses: 0,
+          dueDate: futureDueDate,
+          lastReviewedAt: now,
+          status: 'review',
+        },
+      },
+    ];
+
+    const insertedCards = await Card.insertMany(sampleCards);
+
+    // Seed realistic ReviewLogs for cards that have been reviewed
+    const sampleReviewLogs = [];
+    for (const c of insertedCards) {
+      if (c.srs.repetitions > 0 || c.srs.lapses > 0) {
+        sampleReviewLogs.push({
+          userId: user._id,
+          cardId: c._id,
+          rating: c.srs.lapses > 0 ? 1 : c.srs.repetitions >= 3 ? 4 : 3,
+          prevInterval: Math.max(0, c.srs.intervalDays - 5),
+          newInterval: c.srs.intervalDays,
+          durationMs: 2500 + Math.floor(Math.random() * 2000),
+          reviewedAt: c.srs.lastReviewedAt || now,
+        });
+      }
+    }
+    if (sampleReviewLogs.length > 0) {
+      await ReviewLog.insertMany(sampleReviewLogs);
+    }
+
+    console.log(`[Seed] Seeded 2 Learn decks ("${oxfordDeck.name}", "${ieltsDeck.name}"), ${sampleCards.length} rich flashcards and ${sampleReviewLogs.length} review logs.`);
+
+    // 10. Seed Demo AI Chat Conversation
+    const demoConv = await Conversation.create({
+      userId: user._id,
+      title: 'Lộ trình học IELTS 7.0 & Từ vựng C1',
+      pinned: true,
+    });
+    await Message.create([
+      {
+        conversationId: demoConv._id,
+        userId: user._id,
+        role: 'user',
+        content: 'Chào AI, hãy giúp tôi lên lộ trình học tiếng Anh bứt phá từ vựng nhé!',
+      },
+      {
+        conversationId: demoConv._id,
+        userId: user._id,
+        role: 'assistant',
+        content: 'Chào bạn! Tôi rất vui được đồng hành cùng bạn trên con đường chinh phục tiếng Anh. Với nền tảng trong GoalCalendar, bạn hãy tập trung hoàn thành các mục tiêu từ vựng hàng ngày và duy trì chuỗi Spaced Repetition đều đặn nhé!',
+        tokenUsage: { input: 18, output: 42 },
+      },
+    ]);
+    console.log('[Seed] Seeded 1 demo AI Chat conversation with messages.');
+
     console.log('---------------------------------------------------------');
     console.log('✅ SEED COMPLETED SUCCESSFULLY!');
     console.log(`👤 Demo Account: ${DEMO_EMAIL}`);
     console.log(`🔑 Password:     ${DEMO_PASSWORD}`);
-    console.log('📊 Includes: 5 Categories, Hierarchical Goals, Tasks, Habit Streak, Events, and Year-round Stats');
+    console.log('📊 Includes: 5 Categories, Hierarchical Goals, Tasks, Habit Streak, Events, Flashcards & Year-round Stats');
     console.log('---------------------------------------------------------');
 
-    return { user, categories, yearlyGoal1, yearlyGoal2, monthlyGoal1, monthlyGoal2, weeklyGoal1, weeklyGoal2 };
+    return {
+      user,
+      categories,
+      yearlyGoal1,
+      yearlyGoal2,
+      monthlyGoal1,
+      monthlyGoal2,
+      weeklyGoal1,
+      weeklyGoal2,
+      decks: [oxfordDeck, ieltsDeck],
+      cardsCount: sampleCards.length,
+    };
   } catch (err) {
     console.error('[Seed] Error seeding data:', err);
     throw err;

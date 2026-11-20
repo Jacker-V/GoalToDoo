@@ -29,21 +29,40 @@
    - **Biểu đồ cột ngày trong tuần (Stats Bar Chart)**: Khám phá ngày bạn đạt năng suất cao nhất trong tuần.
    - **Biểu đồ tròn danh mục (Category Donut Chart)**: Đánh giá độ cân bằng cuộc sống giữa Công việc, Sức khỏe, Học tập, Tài chính và Cá nhân.
 
-5. **Giao Diện Đa Ngôn Ngữ & Dark Mode (i18n & UX)**:
+5. **Học Tiếng Anh Thông Minh (Module LEARN & SRS Flashcards)**:
+   - **Hệ thống Flashcards chuẩn thuật toán SuperMemo SM-2**:
+     - Tự động tính toán khoảng cách ngày ôn tập tối ưu (`interval`, `easeFactor`, `repetitions`, `lapses`).
+     - Giao diện thẻ 3D xoay lật mượt mà, phát âm chuẩn tiếng Anh bản ngữ (Web Speech API).
+     - Chế độ luyện gõ chính tả (Typing Mode) với so sánh ký tự (character diff) thời gian thực.
+     - Chấm điểm ghi nhớ 4 cấp độ (1: Again, 2: Hard, 3: Good, 4: Easy) với phím tắt nhanh 1, 2, 3, 4 hoặc phím Space để lật thẻ.
+     - Nhập từ vựng hàng loạt (Bulk Import) linh hoạt nhận diện định dạng dấu gạch nối, dấu gạch đứng, dấu hai chấm.
+     - Gộp bộ thẻ (Merge Decks), lọc từ vựng theo trạng thái (New, Learning, Review, Suspended), theo tags và giáo trình nguồn.
+     - Thống kê SRS chuyên sâu: Biểu đồ dự báo số thẻ đến hạn 7 ngày tới, tỷ lệ ghi nhớ (retention rate), danh sách từ hay quên (Leech cards) để tập trung củng cố.
+   - **Trợ lý Gia sư AI Đa phương thức (Multimodal AI Tutor powered by Google Gemini)**:
+     - Đàm thoại trực tiếp với công nghệ Streaming SSE (Server-Sent Events), giải đáp ngữ pháp, chữa bài viết luận, phân tích ngữ nghĩa và thành ngữ.
+     - Hỗ trợ tải tệp đa định dạng: Ảnh (JPG, PNG, WEBP), Tài liệu (PDF, Word DOCX, Markdown, Text) với xác thực chữ ký nhị phân (magic bytes) an toàn.
+     - Tự động trích xuất từ vựng học thuật từ văn bản hoặc tài liệu đính kèm, đề xuất thẻ flashcard trực tiếp vào bộ thẻ người dùng chỉ với 1 click.
+     - **Hồ sơ Người học (Learner Profile - Trí nhớ dài hạn)**: AI ghi nhớ trình độ (A1-C2, IELTS, TOEIC), điểm yếu, mục tiêu kỳ vọng và thời gian học mỗi ngày để cá nhân hóa toàn bộ nội dung.
+     - **Chiến lược & Lộ trình học tập (Hierarchical Study Plan)**: Tự động thiết kế cây lộ trình phân cấp Năm -> Tháng -> Tuần -> Nhiệm vụ hàng ngày, và đồng bộ trực tiếp vào hệ thống Lịch và Mục tiêu của GoalCalendar.
+   - **Đồng bộ Tiến độ Học tập Tự động (Task & Goal Sync Engine)**:
+     - Tự động sinh công việc hệ thống hàng ngày *"Ôn tập X thẻ từ vựng"* khi có thẻ đến hạn.
+     - Hoàn thành phiên ôn tập sẽ tự động đánh dấu hoàn thành nhiệm vụ và cập nhật tiến độ mục tiêu học tập liên kết.
+
+6. **Giao Diện Đa Ngôn Ngữ & Dark Mode (i18n & UX)**:
    - Hỗ trợ đầy đủ **Tiếng Việt 🇻🇳** (mặc định) và **English 🇬🇧**. Chuyển đổi mượt mà ngay trên thanh tiêu đề và tự động lưu cấu hình.
    - **Dark Mode**: Đồng bộ giao diện tối/sáng chuẩn xác, độ tương phản cao, không gây mỏi mắt.
    - Hiệu ứng tải dữ liệu mượt mà với **Loading Skeletons** và thông báo **Empty States** sinh động kèm nút hành động nhanh.
 
-6. **Phím Tắt Bàn Phím (Keyboard Shortcuts)**:
+7. **Phím Tắt Bàn Phím (Keyboard Shortcuts)**:
    - Nhấn `N`: Mở nhanh hộp thoại tạo mới (Công việc / Mục tiêu / Sự kiện).
    - Nhấn `T`: Chuyển ngay về Hôm nay trên Lịch và Tổng quan.
    - Nhấn `?`: Xem bảng tổng hợp các phím tắt.
    - Tự động nhận diện khi người dùng đang nhập liệu trong ô form để tránh kích hoạt ngoài ý muốn.
 
-7. **Xuất Dữ Liệu (Data Export)**:
+8. **Xuất Dữ Liệu (Data Export)**:
    - Xuất danh sách Công việc hoặc Mục tiêu ra tệp **CSV** (đã nhúng UTF-8 BOM chuẩn hiển thị tiếng Việt trên Excel) hoặc **JSON**.
 
-8. **Thông Báo Trình Duyệt (Browser Notifications)**:
+9. **Thông Báo Trình Duyệt (Browser Notifications)**:
    - Tích hợp Web Notifications API nhắc nhở việc đến hạn trong ngày.
 
 ---
@@ -152,12 +171,38 @@ Tạo file cấu hình môi trường dựa trên `.env.example`:
 ```env
 PORT=5000
 NODE_ENV=development
+CLIENT_URL=http://localhost:5173
 MONGODB_URI=mongodb://localhost:27017/goalcalendar
-JWT_ACCESS_SECRET=your_super_secret_access_jwt_key_goalcalendar_2026
-JWT_REFRESH_SECRET=your_super_secret_refresh_jwt_key_goalcalendar_2026
+
+# JWT Authentication
+JWT_ACCESS_SECRET=your_super_secret_access_jwt_key_goalcalendar_2026_must_be_long
+JWT_REFRESH_SECRET=your_super_secret_refresh_jwt_key_goalcalendar_2026_must_be_long
 JWT_ACCESS_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=7d
-CLIENT_URL=http://localhost:5173
+
+# ==============================================================================
+# Module LEARN: Cấu hình Google Gemini AI & Quota
+# ==============================================================================
+# 🔑 Hướng dẫn lấy API Key miễn phí từ Google AI Studio:
+# 1. Truy cập https://aistudio.google.com và đăng nhập bằng tài khoản Google.
+# 2. Nhấp "Get API key" -> "Create API key in new project" và copy mã key.
+# 3. Dán key vào biến GEMINI_API_KEY dưới đây.
+# (Nếu để trống, hệ thống sẽ tự động kích hoạt Intelligent Mock Assistant để trải nghiệm offline/testing).
+GEMINI_API_KEY=your_gemini_api_key_here
+
+# Mô hình AI khuyến nghị (mặc định: gemini-1.5-flash hoặc gemini-2.0-flash-exp)
+GEMINI_MODEL=gemini-1.5-flash
+
+# Giới hạn lượt chat và token hàng ngày cho mỗi người dùng (Rate Control)
+MAX_DAILY_CHAT_REQUESTS=50
+MAX_DAILY_INPUT_TOKENS=100000
+MAX_DAILY_OUTPUT_TOKENS=50000
+
+# ==============================================================================
+# Module LEARN: Cấu hình tải tệp & tài liệu đính kèm
+# ==============================================================================
+MAX_UPLOAD_FILE_SIZE_MB=10
+ALLOWED_FILE_TYPES=image/jpeg,image/png,image/webp,application/pdf,text/plain,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document
 ```
 
 **Frontend (`client/.env`):**
@@ -200,6 +245,11 @@ cd server && npm run seed
   - Các công việc hoàn thành và quá hạn để hiển thị trạng thái lọc.
 - **Sự kiện trên lịch**: Họp Sprint đầu tuần, Lớp học tiếng Anh, Buổi tập thể thao cuối tuần.
 - **Dữ liệu phân tích lịch sử**: Hơn 80 bản ghi `ProgressLog` và `TaskCompletion` rải đều trong năm, hiển thị sinh động trên **Contribution Heatmap**, **Trend Line Chart**, **Stats Bar Chart** và **Donut Chart** ngay khi đăng nhập.
+- **Module LEARN (Học tiếng Anh)**:
+  - 2 Bộ thẻ flashcard mẫu: *"Oxford 3000 Cơ bản"* và *"IELTS Academic"*.
+  - 20 Thẻ từ vựng phong phú kèm phát âm, nghĩa, loại từ, ví dụ ngữ cảnh, nguồn và tags.
+  - 13 Nhật ký ôn tập SRS (`ReviewLog`) tạo sẵn lịch sử ôn tập và dự báo 7 ngày.
+  - 1 Cuộc trò chuyện AI mẫu với câu hỏi ngữ pháp và trích xuất từ vựng thành flashcard.
 
 ---
 
@@ -309,16 +359,68 @@ Tất cả các endpoint (ngoại trừ Auth công khai) đều yêu cầu Heade
 | `GET` | `/api/v1/stats/trend/:goalId` | Dữ liệu lịch sử tiến độ mục tiêu so với đường lý tưởng |
 | `GET` | `/api/v1/stats/distribution` | Phân bổ công việc và mục tiêu theo ngày trong tuần và danh mục |
 
+### 7. Thẻ ghi nhớ & Ôn tập ngắt quãng SRS (`/api/v1/learn`)
+| Phương thức | Đường dẫn | Mô tả |
+|---|---|---|
+| `GET` | `/api/v1/learn/decks` | Lấy danh sách bộ thẻ kèm thống kê số thẻ và thẻ cần ôn |
+| `POST` | `/api/v1/learn/decks` | Tạo bộ thẻ mới (name, description, color, icon) |
+| `PATCH` | `/api/v1/learn/decks/:id` | Cập nhật thông tin bộ thẻ |
+| `DELETE` | `/api/v1/learn/decks/:id` | Xóa bộ thẻ (hỗ trợ query `cascade=true/false`) |
+| `POST` | `/api/v1/learn/decks/merge` | Hợp nhất 2 bộ thẻ (chuyển thẻ từ nguồn sang đích) |
+| `GET` | `/api/v1/learn/cards` | Danh sách thẻ (phân trang, lọc theo deckId, status, search, tag) |
+| `POST` | `/api/v1/learn/cards` | Tạo thẻ flashcard mới (front, back, pronunciation, partOfSpeech, examples, tags, deckId) |
+| `GET` | `/api/v1/learn/cards/:id` | Xem chi tiết thông tin thẻ và lịch sử ôn tập SRS |
+| `PATCH` | `/api/v1/learn/cards/:id` | Cập nhật nội dung thẻ flashcard |
+| `DELETE` | `/api/v1/learn/cards/:id` | Xóa thẻ flashcard |
+| `PATCH` | `/api/v1/learn/cards/:id/suspend` | Tạm hoãn (suspend) hoặc kích hoạt lại thẻ |
+| `POST` | `/api/v1/learn/cards/bulk` | Nhập nhiều thẻ hàng loạt (hỗ trợ `preview` và `commit`) |
+| `GET` | `/api/v1/learn/review/queue` | Lấy danh sách thẻ đến hạn ôn tập hôm nay theo thuật toán SRS SM-2 |
+| `POST` | `/api/v1/learn/review/answer` | Gửi kết quả đánh giá (rating 1-4: Again, Hard, Good, Easy) |
+| `GET` | `/api/v1/learn/settings` | Lấy cấu hình học tập cá nhân (chiều thẻ, giới hạn thẻ mới/ôn tập) |
+| `PATCH` | `/api/v1/learn/settings` | Cập nhật cấu hình học tập |
+| `GET` | `/api/v1/learn/stats` | Thống kê học tập: tổng thẻ, độ chính xác, chuỗi học tập, dự báo ôn tập |
+
+### 8. Trợ lý AI & Lập kế hoạch học tập (`/api/v1/chat`)
+| Phương thức | Đường dẫn | Mô tả |
+|---|---|---|
+| `GET` | `/api/v1/chat/conversations` | Lấy danh sách các cuộc trò chuyện (hỗ trợ tìm kiếm theo tiêu đề) |
+| `POST` | `/api/v1/chat/conversations` | Tạo cuộc trò chuyện mới |
+| `PATCH` | `/api/v1/chat/conversations/:id` | Đổi tên hoặc ghim (pin) cuộc trò chuyện |
+| `DELETE` | `/api/v1/chat/conversations/:id` | Xóa cuộc trò chuyện và dữ liệu liên quan |
+| `GET` | `/api/v1/chat/conversations/:id/messages` | Lấy lịch sử tin nhắn trong cuộc trò chuyện |
+| `POST` | `/api/v1/chat/conversations/:id/messages` | Gửi tin nhắn và nhận phản hồi trực tiếp qua SSE Stream (kèm tệp tài liệu) |
+| `POST` | `/api/v1/chat/messages/:id/feedback` | Đánh giá phản hồi của AI (like/dislike kèm lý do) |
+| `POST` | `/api/v1/chat/files` | Tải lên tệp tài liệu/ảnh đính kèm cho AI phân tích (tối đa 5 tệp, 10MB) |
+| `GET` | `/api/v1/chat/files/:id` | Tải xuống hoặc xem tệp đính kèm |
+| `DELETE` | `/api/v1/chat/files/:id` | Xóa tệp đính kèm đã tải lên |
+| `GET` | `/api/v1/chat/profile` | Xem hồ sơ năng lực người học (mục tiêu, trình độ, sở thích, điểm yếu) |
+| `PATCH` | `/api/v1/chat/profile` | Cập nhật hồ sơ năng lực người học |
+| `DELETE` | `/api/v1/chat/profile` | Đặt lại hồ sơ năng lực về mặc định |
+| `POST` | `/api/v1/chat/actions/add-cards` | Lưu nhanh các thẻ từ vựng do AI đề xuất vào bộ flashcard |
+| `POST` | `/api/v1/chat/actions/apply-plan` | Chuyển đổi kế hoạch học tập AI thành Mục tiêu & Công việc thực tế trên Lịch |
+| `GET` | `/api/v1/chat/usage` | Kiểm tra hạn mức và số token AI đã sử dụng trong ngày |
+
 ---
 
 ## ⌨️ Bảng Phím Tắt Tiện Dụng
 
+### Toàn hệ thống
 | Phím tắt | Tác vụ |
 |---|---|
 | `N` | Mở hộp thoại tạo nhanh: Công việc, Mục tiêu hoặc Sự kiện |
 | `T` | Chuyển góc nhìn lịch & tổng quan về ngày **Hôm nay** |
 | `?` | Hiển thị hộp thoại trợ giúp phím tắt |
 | `Escape` | Đóng bất kỳ hộp thoại (modal) đang mở |
+
+### Trong phiên Ôn tập Flashcard (SRS Review)
+| Phím tắt | Tác vụ |
+|---|---|
+| `Space` | Lật mặt trước / mặt sau của thẻ |
+| `1` | Đánh giá: **Học lại** (Again - 1 phút) |
+| `2` | Đánh giá: **Khó** (Hard - khoảng cách ngắn) |
+| `3` | Đánh giá: **Tốt** (Good - khoảng cách tiêu chuẩn) |
+| `4` | Đánh giá: **Dễ** (Easy - khoảng cách dài) |
+| `Enter` | Kiểm tra chính tả khi bật chế độ "Gõ để nhớ" / Lật thẻ |
 
 *(Hệ thống thông minh tự vô hiệu hóa phím tắt khi con trỏ đang nằm trong ô gõ chữ, đảm bảo không ảnh hưởng khi soạn thảo văn bản)*
 

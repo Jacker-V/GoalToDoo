@@ -9,6 +9,8 @@ export const requireAuth = async (req, res, next) => {
 
     if (authHeader && /^Bearer\s+/i.test(authHeader)) {
       token = authHeader.replace(/^Bearer\s+/i, '').trim();
+    } else if (req.query && req.query.token) {
+      token = req.query.token;
     } else if (req.cookies && req.cookies.accessToken) {
       token = req.cookies.accessToken;
     }

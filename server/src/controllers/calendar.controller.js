@@ -5,6 +5,7 @@ import { TaskCompletion } from '../models/taskCompletion.model.js';
 import { AppError, sendSuccess } from '../utils/response.js';
 import { calculateStreak } from '../utils/streak.js';
 import { expandEventOccurrences } from '../utils/calendarRecurrence.js';
+import { syncDailyReviewTask } from '../modules/learn/services/learnTaskSync.service.js';
 
 export const parseDateRange = (fromStr, toStr) => {
   if (!fromStr || !toStr) {
@@ -59,6 +60,8 @@ export const getCalendarData = async (req, res, next) => {
     const { fromDate, toDate } = parseDateRange(from, to);
 
     const userId = req.user._id;
+
+    await syncDailyReviewTask(userId);
 
     // --- 1. Fetch & Expand Events ---
     // Efficiently query: recurring events OR non-recurring events intersecting range

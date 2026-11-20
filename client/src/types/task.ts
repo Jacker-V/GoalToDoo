@@ -15,6 +15,9 @@ export interface Recurrence {
 
 export type Priority = 'low' | 'medium' | 'high';
 
+export type TaskSource = 'user' | 'system';
+export type TaskLinkedModule = 'none' | 'learn';
+
 export interface Task {
   _id: string;
   userId: string;
@@ -31,6 +34,9 @@ export interface Task {
   recurrence: Recurrence;
   order: number;
   weight: number;
+  source?: TaskSource;
+  linkedModule?: TaskLinkedModule;
+  metadata?: Record<string, any>;
   progress?: number;
   streak?: number;
   isCompletedToday?: boolean;
@@ -51,6 +57,9 @@ export interface CreateTaskInput {
   recurrence?: Recurrence;
   order?: number;
   weight?: number;
+  source?: TaskSource;
+  linkedModule?: TaskLinkedModule;
+  metadata?: Record<string, any>;
 }
 
 export interface UpdateTaskInput {
@@ -66,4 +75,7 @@ export interface UpdateTaskInput {
   recurrence?: Recurrence;
   order?: number;
   weight?: number;
+  source?: TaskSource;
+  linkedModule?: TaskLinkedModule;
+  metadata?: Record<string, any>;
 }

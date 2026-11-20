@@ -38,6 +38,27 @@ const userSchema = new mongoose.Schema(
         enum: [0, 1], // 0: Sunday, 1: Monday
         default: 1,
       },
+      learn: {
+        maxNewCardsPerDay: {
+          type: Number,
+          default: 20,
+          min: 1,
+        },
+        maxReviewCardsPerDay: {
+          type: Number,
+          default: 100,
+          min: 1,
+        },
+        defaultDirection: {
+          type: String,
+          enum: ['en_to_vi', 'vi_to_en'],
+          default: 'en_to_vi',
+        },
+        enableTypingMode: {
+          type: Boolean,
+          default: false,
+        },
+      },
     },
     refreshTokens: {
       type: [String],

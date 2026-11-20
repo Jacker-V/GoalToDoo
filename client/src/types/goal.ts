@@ -4,6 +4,7 @@ export type GoalType = 'year' | 'quarter' | 'month' | 'week' | 'custom';
 export type GoalPriority = 'low' | 'medium' | 'high';
 export type GoalStatus = 'not_started' | 'in_progress' | 'completed' | 'paused' | 'cancelled';
 export type GoalProgressMode = 'auto' | 'numeric';
+export type GoalLinkedMetric = 'none' | 'cards_added' | 'cards_mastered' | 'review_sessions';
 
 export interface Goal {
   _id: string;
@@ -19,6 +20,7 @@ export interface Goal {
   priority: GoalPriority;
   status: GoalStatus;
   progressMode: GoalProgressMode;
+  linkedMetric?: GoalLinkedMetric;
   targetValue: number;
   currentValue: number;
   unit?: string;
@@ -48,6 +50,7 @@ export interface CreateGoalInput {
   priority?: GoalPriority;
   status?: GoalStatus;
   progressMode?: GoalProgressMode;
+  linkedMetric?: GoalLinkedMetric;
   targetValue?: number;
   currentValue?: number;
   unit?: string;
@@ -66,6 +69,7 @@ export interface UpdateGoalInput {
   priority?: GoalPriority;
   status?: GoalStatus;
   progressMode?: GoalProgressMode;
+  linkedMetric?: GoalLinkedMetric;
   targetValue?: number;
   currentValue?: number;
   unit?: string;

@@ -76,6 +76,14 @@ const goalSchema = new mongoose.Schema(
       },
       default: 'auto',
     },
+    linkedMetric: {
+      type: String,
+      enum: {
+        values: ['none', 'cards_added', 'cards_mastered', 'review_sessions'],
+        message: '{VALUE} is not a valid linkedMetric',
+      },
+      default: 'none',
+    },
     targetValue: {
       type: Number,
       default: 100,

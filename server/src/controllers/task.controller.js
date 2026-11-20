@@ -4,11 +4,14 @@ import { TaskCompletion } from '../models/taskCompletion.model.js';
 import { recalculateGoalProgress } from '../services/progress.service.js';
 import { AppError, sendSuccess } from '../utils/response.js';
 import { calculateStreak } from '../utils/streak.js';
+import { syncDailyReviewTask } from '../modules/learn/services/learnTaskSync.service.js';
 
 export { calculateStreak };
 
 export const getTasks = async (req, res, next) => {
   try {
+    await syncDailyReviewTask(req.user._id);
+
     const { goalId, priority, isCompleted, dueDate, tag } = req.query;
     const filter = { userId: req.user._id };
 

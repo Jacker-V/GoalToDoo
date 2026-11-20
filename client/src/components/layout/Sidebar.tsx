@@ -1,11 +1,13 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   Target,
   CheckSquare,
   Calendar,
   BarChart3,
+  GraduationCap,
+  Sparkles,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
@@ -51,12 +53,26 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
       badge: null,
     },
     {
+      to: '/learn/decks',
+      label: t('nav.learn'),
+      icon: GraduationCap,
+      badge: null,
+    },
+    {
+      to: '/learn/chat',
+      label: t('nav.aiChat'),
+      icon: Sparkles,
+      badge: null,
+    },
+    {
       to: '/insights',
       label: t('nav.insights'),
       icon: BarChart3,
       badge: null,
     },
   ];
+
+  const location = useLocation();
 
   return (
     <aside
@@ -99,12 +115,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
       <div className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
+          const isActive = item.to === '/learn/chat'
+            ? location.pathname === '/learn/chat'
+            : item.to.startsWith('/learn')
+            ? location.pathname.startsWith('/learn') && location.pathname !== '/learn/chat'
+            : item.to === '/'
+            ? location.pathname === '/'
+            : location.pathname.startsWith(item.to);
+
           return (
             <NavLink
               key={item.to}
               to={item.to}
               end={item.to === '/'}
-              className={({ isActive }) =>
+              className={() =>
                 `flex items-center px-3 py-2.5 rounded-xl text-sm font-medium transition-all group ${
                   isActive
                     ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400 font-semibold shadow-sm'

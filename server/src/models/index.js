@@ -5,3 +5,4 @@ export { Task } from './task.model.js';
 export { TaskCompletion } from './taskCompletion.model.js';
 export { Event } from './event.model.js';
 export { ProgressLog } from './progressLog.model.js';
+export { Deck, Card, ReviewLog, Conversation, Message, AiUsage } from '../modules/learn/models/index.js';

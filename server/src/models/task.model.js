@@ -115,6 +115,20 @@ const taskSchema = new mongoose.Schema(
       default: 1,
       min: 0,
     },
+    source: {
+      type: String,
+      enum: ['user', 'system'],
+      default: 'user',
+    },
+    linkedModule: {
+      type: String,
+      enum: ['none', 'learn'],
+      default: 'none',
+    },
+    metadata: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
   },
   {
     timestamps: true,
@@ -125,6 +139,7 @@ const taskSchema = new mongoose.Schema(
 
 taskSchema.index({ userId: 1, dueDate: 1 });
 taskSchema.index({ userId: 1, isCompleted: 1 });
+taskSchema.index({ userId: 1, source: 1, linkedModule: 1 });
 
 taskSchema.virtual('progress').get(function () {
   if (this.subtasks && this.subtasks.length > 0) {

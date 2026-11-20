@@ -7,12 +7,15 @@ import {
   buildGoalTree,
   calculateNumericGoalProgress,
 } from '../services/progress.service.js';
+import { syncLearnGoals } from '../modules/learn/services/learnTaskSync.service.js';
 import { AppError, sendSuccess } from '../utils/response.js';
 
 export const getGoals = async (req, res, next) => {
   try {
     const { type, status, priority, categoryId, parentId } = req.query;
     const filter = { userId: req.user._id };
+
+    await syncLearnGoals(req.user._id);
 
     if (type) filter.type = type;
     if (status) filter.status = status;
@@ -66,6 +69,14 @@ export const createGoal = async (req, res, next) => {
     }
 
     const goal = await Goal.create(goalData);
+
+    if (goal.progressMode === 'numeric' && goal.linkedMetric && goal.linkedMetric !== 'none') {
+      await syncLearnGoals(req.user._id);
+      const reloaded = await Goal.findById(goal._id);
+      if (reloaded) {
+        Object.assign(goal, reloaded.toObject());
+      }
+    }
 
     // Initial progress log
     await ProgressLog.create({
@@ -173,6 +184,10 @@ export const updateGoal = async (req, res, next) => {
       await recalculateGoalProgress(goal._id, req.user._id, 'Goal properties updated');
     }
 
+    if (goal.progressMode === 'numeric' && goal.linkedMetric && goal.linkedMetric !== 'none') {
+      await syncLearnGoals(req.user._id);
+    }
+
     // Handle parent changes
     const newParentId = goal.parentId ? goal.parentId.toString() : null;
     if (oldParentId !== newParentId) {
@@ -240,6 +255,7 @@ export const deleteGoal = async (req, res, next) => {
 
 export const getGoalTree = async (req, res, next) => {
   try {
+    await syncLearnGoals(req.user._id);
     const tree = await buildGoalTree(req.user._id);
     return sendSuccess(res, tree, 200);
   } catch (err) {
